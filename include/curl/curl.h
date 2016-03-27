@@ -1673,6 +1673,9 @@ typedef enum {
   /* Set E-xclusive stream dependency on another CURL handle */
   CINIT(STREAM_DEPENDS_E, OBJECTPOINT, 241),
 
+  /* Do not send any tftp option requests to the server */
+  CINIT(TFTP_NO_OPTIONS, LONG, 242),
+
   CURLOPT_LASTENTRY /* the last unused */
 } CURLoption;
 
@@ -2109,7 +2112,7 @@ typedef enum {
 
 /* Information about the SSL library used and the respective internal SSL
    handle, which can be used to obtain further information regarding the
-   connection. Asked for with CURLINFO_TLS_SESSION. */
+   connection. Asked for with CURLINFO_TLS_SSL_PTR or CURLINFO_TLS_SESSION. */
 struct curl_tlssessioninfo {
   curl_sslbackend backend;
   void *internals;
@@ -2169,9 +2172,10 @@ typedef enum {
   CURLINFO_LOCAL_PORT       = CURLINFO_LONG   + 42,
   CURLINFO_TLS_SESSION      = CURLINFO_SLIST  + 43,
   CURLINFO_ACTIVESOCKET     = CURLINFO_SOCKET + 44,
+  CURLINFO_TLS_SSL_PTR      = CURLINFO_SLIST  + 45,
   /* Fill in new entries below here! */
 
-  CURLINFO_LASTONE          = 44
+  CURLINFO_LASTONE          = 45
 } CURLINFO;
 
 /* CURLINFO_RESPONSE_CODE is the new name for the option previously known as
