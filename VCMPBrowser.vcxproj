@@ -63,7 +63,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>Debug</GenerateDebugInformation>
-      <AdditionalDependencies>libcurl_a.lib;uxtheme.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;libcurld.lib;uxtheme.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ResourceCompile>
       <NullTerminateStrings>true</NullTerminateStrings>
@@ -84,7 +84,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
-      <AdditionalDependencies>libcurl_a.lib;uxtheme.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;libcurl.lib;uxtheme.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ResourceCompile>
       <NullTerminateStrings>true</NullTerminateStrings>
@@ -101,10 +101,6 @@
     <ResourceCompile Include="langs\en_US.rc" />
     <ResourceCompile Include="langs\zh_CN.rc" />
     <ResourceCompile Include="VCMPBrowser.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="small.ico" />
-    <Image Include="VCMPBrowser.ico" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="VCMPBrowser.exe.manifest" />

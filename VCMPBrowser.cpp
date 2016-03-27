@@ -9,11 +9,15 @@ HWND g_hWndGroupBox1;
 HWND g_hWndListViewPlayers;
 HWND g_hWndGroupBox2;
 HWND g_hWndStatusBar;
+serverList *g_serversList;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK    WaitingDialog(HWND, UINT, WPARAM, LPARAM);
+CURLcode CurlRequset(const char *URL, std::string &data);
+bool ParseJson(const char *json, serverList &serversList);
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
 
@@ -25,14 +29,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	//SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
+	SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
+
+	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
+		return FALSE;
 
 	MyRegisterClass(hInstance);
 
 	if (!InitInstance(hInstance, nCmdShow))
-	{
 		return FALSE;
-	}
 
 	MSG msg;
 
@@ -41,6 +46,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+
+	curl_global_cleanup();
 
 	return (int)msg.wParam;
 }
@@ -73,9 +80,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	g_hMainWnd = CreateWindowEx(0, L"VCMPBrowser", LoadStr(L"VCMPBrowser", IDS_APP_TITLE), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 1000, 600, nullptr, nullptr, hInstance, nullptr);
 
 	if (!g_hMainWnd)
-	{
 		return FALSE;
-	}
 
 	ShowWindow(g_hMainWnd, nCmdShow);
 	UpdateWindow(g_hMainWnd);
@@ -97,18 +102,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			SetWindowFont(g_hWndTab, hFont, FALSE);
 
+			HIMAGELIST hTabIml = ImageList_Create(16, 16, ILC_COLOR32, 0, 0);
+			if (hTabIml)
+			{
+				for (int i = IDI_FAVORITE; i <= IDI_HISTORY; ++i)
+					ImageList_AddIcon(hTabIml, LoadIcon(g_hInst, MAKEINTRESOURCE(i)));
+				TabCtrl_SetImageList(g_hWndTab, hTabIml);
+			}
+
 			TCITEM tie;
-			tie.mask = TCIF_TEXT;
+			tie.mask = TCIF_TEXT | TCIF_IMAGE;
+			tie.iImage = 0;
 			tie.pszText = LoadStr(L"Favorites", IDS_FAVORITES);
 			TabCtrl_InsertItem(g_hWndTab, 0, &tie);
+
+			tie.iImage = 1;
 			tie.pszText = LoadStr(L"Internet", IDS_INTERNET);
 			TabCtrl_InsertItem(g_hWndTab, 1, &tie);
+
+			tie.iImage = 1;
 			tie.pszText = LoadStr(L"Official", IDS_OFFICIAL);
 			TabCtrl_InsertItem(g_hWndTab, 2, &tie);
-			tie.pszText = LoadStr(L"History", IDS_HISTORY);
+
+			tie.iImage = 2;
+			tie.pszText = LoadStr(L"Lan", IDS_LAN);
 			TabCtrl_InsertItem(g_hWndTab, 3, &tie);
 
-			g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, g_hWndTab, nullptr, g_hInst, nullptr);
+			tie.iImage = 3;
+			tie.pszText = LoadStr(L"History", IDS_HISTORY);
+			TabCtrl_InsertItem(g_hWndTab, 4, &tie);
+
+			g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, g_hWndTab, nullptr, g_hInst, nullptr);
 			if (g_hWndListViewServers)
 			{
 				SetWindowTheme(g_hWndListViewServers, L"Explorer", nullptr);
@@ -120,7 +144,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				ListView_InsertColumn(g_hWndListViewServers, 0, &lvc);
 
 				lvc.mask = LVCF_WIDTH | LVCF_TEXT;
-				lvc.cx = 260;
+				lvc.cx = 240;
 				lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
 				ListView_InsertColumn(g_hWndListViewServers, 1, &lvc);
 
@@ -143,25 +167,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				lvc.cx = 100;
 				lvc.pszText = LoadStr(L"Map Name", IDS_MAPNAME);
 				ListView_InsertColumn(g_hWndListViewServers, 6, &lvc);
-
-				LVITEM lvi;
-				lvi.mask = LVIF_STATE;
-				lvi.stateMask = 0;
-				lvi.iSubItem = 0;
-				lvi.state = 0;
-				lvi.iItem = 0;
-				lvi.pszText = nullptr;
-				int i = ListView_InsertItem(g_hWndListViewServers, &lvi);
-
-				ListView_SetItemText(g_hWndListViewServers, i, 1, L"TestServer");
-				ListView_SetItemText(g_hWndListViewServers, i, 2, L"1234");
-				ListView_SetItemText(g_hWndListViewServers, i, 3, L"0/0");
-				ListView_SetItemText(g_hWndListViewServers, i, 4, L"04rel999");
-				ListView_SetItemText(g_hWndListViewServers, i, 5, L"modename");
-				ListView_SetItemText(g_hWndListViewServers, i, 6, L"mapname");
 			}
 
-			g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, g_hWndTab, nullptr, g_hInst, nullptr);
+			g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, g_hWndTab, nullptr, g_hInst, nullptr);
 			if (g_hWndListViewHistory)
 			{
 				SetWindowTheme(g_hWndListViewHistory, L"Explorer", nullptr);
@@ -214,19 +222,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				lvc.mask = LVCF_WIDTH;
 				lvc.cx = 257;
 				ListView_InsertColumn(g_hWndListViewPlayers, 0, &lvc);
-
-				LVITEM lvi;
-				lvi.mask = LVIF_TEXT | LVIF_STATE;
-				lvi.stateMask = 0;
-				lvi.iSubItem = 0;
-				lvi.state = 0;
-				lvi.iItem = 0;
-				lvi.pszText = L"Test";
-				ListView_InsertItem(g_hWndListViewPlayers, &lvi);
-				ListView_InsertItem(g_hWndListViewPlayers, &lvi);
-				ListView_InsertItem(g_hWndListViewPlayers, &lvi);
-				ListView_InsertItem(g_hWndListViewPlayers, &lvi);
-				ListView_InsertItem(g_hWndListViewPlayers, &lvi);
 			}
 		}
 
@@ -290,19 +285,75 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (((LPNMHDR)lParam)->code)
 		{
 		case TCN_SELCHANGE:
-			switch (TabCtrl_GetCurSel(((LPNMHDR)lParam)->hwndFrom))
+		{
+			int curSel = TabCtrl_GetCurSel(((LPNMHDR)lParam)->hwndFrom);
+			switch (curSel)
 			{
 			case 0: // Favorites
 			case 1: // Internet
 			case 2: // Official
+			case 3: // Lan
+				ListView_DeleteAllItems(g_hWndListViewServers);
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
 				ShowWindow(g_hWndListViewHistory, SW_HIDE);
+				if (curSel == 1 || curSel == 2 || curSel == 3)
+				{
+					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, WaitingDialog);
+					SetWindowPos(hDialog, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+					UpdateWindow(hDialog);
+
+					if (curSel == 1 || curSel == 2)
+					{
+						std::string data;
+						if (CurlRequset(curSel == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data) == CURLE_OK)
+						{
+							serverList serversList;
+							if (ParseJson(data.c_str(), serversList))
+							{
+								g_serversList = new serverList(serversList);
+
+								ListView_SetItemCount(g_hWndListViewServers, g_serversList->size());
+							}
+						}
+					}
+					DestroyWindow(hDialog);
+				}
 				break;
-			case 3: // History
+			case 4: // History
 				ShowWindow(g_hWndListViewHistory, SW_SHOW);
 				ShowWindow(g_hWndListViewServers, SW_HIDE);
 				break;
 			}
+		}
+		break;
+		case LVN_GETDISPINFO:
+		{
+			LV_DISPINFO *lpdi = (LV_DISPINFO *)lParam;
+
+			if (lpdi->item.iSubItem == 1)
+			{
+				if (lpdi->item.mask & LVIF_TEXT)
+				{
+					server &server = (*g_serversList)[lpdi->item.iItem];
+					std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+					std::wstring ip = converter.from_bytes(server.first);
+					swprintf(lpdi->item.pszText, lpdi->item.cchTextMax, L"%s:%hu", ip.c_str(), server.second);
+				}
+			}
+			else
+			{
+				if (lpdi->item.mask & LVIF_TEXT)
+				{
+					//swprintf(lpdi->item.pszText, lpdi->item.cchTextMax, L"Item %d", lpdi->item.iItem + 1);
+				}
+
+				if (lpdi->item.mask & LVIF_IMAGE)
+				{
+					lpdi->item.iImage = 0;
+				}
+			}
+		}
+		break;
 		}
 	}
 	break;
@@ -332,7 +383,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
 	case WM_INITDIALOG:
@@ -353,4 +403,75 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK WaitingDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(wParam);
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+	}
+	return (INT_PTR)FALSE;
+}
+
+CURLcode CurlRequset(const char *URL, std::string &data)
+{
+	CURLcode res = CURLE_FAILED_INIT;
+	CURL *curl = curl_easy_init();
+	if (curl)
+	{
+		curl_easy_setopt(curl, CURLOPT_URL, URL);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, (curl_write_callback)[](char *buffer, size_t size, size_t nitems, void *outstream) {
+			if (outstream)
+			{
+				size_t realsize = size * nitems;
+				((std::string *)outstream)->append(buffer, realsize);
+				return realsize;
+			}
+			return (size_t)0;
+		});
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+	}
+	return res;
+}
+
+bool ParseJson(const char *json, serverList &serversList)
+{
+	rapidjson::Document dom;
+	if (!dom.Parse(json).HasParseError())
+	{
+		if (dom.IsObject())
+		{
+			auto success = dom.FindMember("success");
+			if (success != dom.MemberEnd() && success->value.IsBool() && success->value.GetBool())
+			{
+				auto servers = dom.FindMember("servers");
+				if (servers != dom.MemberEnd() && servers->value.IsArray())
+				{
+					for (auto it = servers->value.Begin(); it != servers->value.End(); ++it)
+					{
+						if (it->IsObject())
+						{
+							auto ip = it->FindMember("ip");
+							auto port = it->FindMember("port");
+							if (ip != it->MemberEnd() && port != it->MemberEnd() && ip->value.IsString() && port->value.IsUint())
+							{
+								server server(ip->value.GetString(), port->value.GetUint());
+								serversList.push_back(server);
+							}
+						}
+					}
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }

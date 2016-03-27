@@ -42,14 +42,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="VCMPBrowser.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
     <Manifest Include="VCMPBrowser.exe.manifest">
       <Filter>资源文件</Filter>
     </Manifest>
