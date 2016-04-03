@@ -346,7 +346,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					//swprintf(di->item.pszText, di->item.cchTextMax, L"Item %d", di->item.iItem + 1);
 				}
-
 				if (di->item.mask & LVIF_IMAGE)
 				{
 					di->item.iImage = 0;
@@ -468,35 +467,34 @@ CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent)
 
 bool ParseJson(const char *json, serverList &serversList)
 {
-	rapidjson::Document dom;
-	if (!dom.Parse(json).HasParseError())
-	{
-		if (dom.IsObject())
+	do {
+		rapidjson::Document dom;
+		if (dom.Parse(json).HasParseError() || !dom.IsObject())
+			break;
+
+		auto success = dom.FindMember("success");
+		if (success == dom.MemberEnd() || !success->value.IsBool() || !success->value.GetBool())
+			break;
+
+		auto servers = dom.FindMember("servers");
+		if (servers == dom.MemberEnd() || !servers->value.IsArray())
+			break;
+
+		for (auto it = servers->value.Begin(); it != servers->value.End(); ++it)
 		{
-			auto success = dom.FindMember("success");
-			if (success != dom.MemberEnd() && success->value.IsBool() && success->value.GetBool())
+			if (it->IsObject())
 			{
-				auto servers = dom.FindMember("servers");
-				if (servers != dom.MemberEnd() && servers->value.IsArray())
+				auto ip = it->FindMember("ip");
+				auto port = it->FindMember("port");
+				auto isOfficial = it->FindMember("is_official");
+				if (ip != it->MemberEnd() && port != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && isOfficial->value.IsBool())
 				{
-					for (auto it = servers->value.Begin(); it != servers->value.End(); ++it)
-					{
-						if (it->IsObject())
-						{
-							auto ip = it->FindMember("ip");
-							auto port = it->FindMember("port");
-							auto isOfficial = it->FindMember("is_official");
-							if (ip != it->MemberEnd() && port != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && isOfficial->value.IsBool())
-							{
-								serverInfo server = { inet_addr(ip->value.GetString()), (uint16_t)port->value.GetUint(), isOfficial->value.GetBool() };
-								serversList.push_back(server);
-							}
-						}
-					}
-					return true;
+					serverInfo server = { inet_addr(ip->value.GetString()), (uint16_t)port->value.GetUint(), isOfficial->value.GetBool() };
+					serversList.push_back(server);
 				}
 			}
 		}
-	}
+		return true;
+	} while (0);
 	return false;
 }
