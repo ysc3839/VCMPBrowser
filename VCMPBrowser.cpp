@@ -16,7 +16,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    WaitingDialog(HWND, UINT, WPARAM, LPARAM);
-CURLcode CurlRequset(const char *URL, std::string &data);
+CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
 bool ParseJson(const char *json, serverList &serversList);
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
@@ -97,6 +97,81 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 		RECT rcClient;
 		GetClientRect(hWnd, &rcClient);
+
+		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
+		if (g_hWndListViewServers)
+		{
+			SetWindowTheme(g_hWndListViewServers, L"Explorer", nullptr);
+			ListView_SetExtendedListViewStyle(g_hWndListViewServers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+
+			LVCOLUMN lvc;
+			lvc.mask = LVCF_WIDTH;
+			lvc.cx = 30;
+			ListView_InsertColumn(g_hWndListViewServers, 0, &lvc);
+
+			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
+			lvc.cx = 240;
+			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
+			ListView_InsertColumn(g_hWndListViewServers, 1, &lvc);
+
+			lvc.cx = 60;
+			lvc.pszText = LoadStr(L"Ping", IDS_PING);
+			ListView_InsertColumn(g_hWndListViewServers, 2, &lvc);
+
+			lvc.cx = 80;
+			lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
+			ListView_InsertColumn(g_hWndListViewServers, 3, &lvc);
+
+			lvc.cx = 70;
+			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
+			ListView_InsertColumn(g_hWndListViewServers, 4, &lvc);
+
+			lvc.cx = 120;
+			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
+			ListView_InsertColumn(g_hWndListViewServers, 5, &lvc);
+
+			lvc.cx = 100;
+			lvc.pszText = LoadStr(L"Map Name", IDS_MAPNAME);
+			ListView_InsertColumn(g_hWndListViewServers, 6, &lvc);
+		}
+
+		g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
+		if (g_hWndListViewHistory)
+		{
+			SetWindowTheme(g_hWndListViewHistory, L"Explorer", nullptr);
+			ListView_SetExtendedListViewStyle(g_hWndListViewHistory, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+
+			LVCOLUMN lvc;
+			lvc.mask = LVCF_WIDTH;
+			lvc.cx = 30;
+			ListView_InsertColumn(g_hWndListViewHistory, 0, &lvc);
+
+			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
+			lvc.cx = 220;
+			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
+			ListView_InsertColumn(g_hWndListViewHistory, 1, &lvc);
+
+			lvc.cx = 60;
+			lvc.pszText = LoadStr(L"Ping", IDS_PING);
+			ListView_InsertColumn(g_hWndListViewHistory, 2, &lvc);
+
+			lvc.cx = 80;
+			lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
+			ListView_InsertColumn(g_hWndListViewHistory, 3, &lvc);
+
+			lvc.cx = 70;
+			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
+			ListView_InsertColumn(g_hWndListViewHistory, 4, &lvc);
+
+			lvc.cx = 100;
+			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
+			ListView_InsertColumn(g_hWndListViewHistory, 5, &lvc);
+
+			lvc.cx = 160;
+			lvc.pszText = LoadStr(L"Last Played", IDS_LASTPLAYED);
+			ListView_InsertColumn(g_hWndListViewHistory, 6, &lvc);
+		}
+
 		g_hWndTab = CreateWindow(WC_TABCONTROL, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 0, 0, rcClient.right - 259, rcClient.bottom - 120, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndTab)
 		{
@@ -131,80 +206,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			tie.iImage = 3;
 			tie.pszText = LoadStr(L"History", IDS_HISTORY);
 			TabCtrl_InsertItem(g_hWndTab, 4, &tie);
-
-			g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, g_hWndTab, nullptr, g_hInst, nullptr);
-			if (g_hWndListViewServers)
-			{
-				SetWindowTheme(g_hWndListViewServers, L"Explorer", nullptr);
-				ListView_SetExtendedListViewStyle(g_hWndListViewServers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-
-				LVCOLUMN lvc;
-				lvc.mask = LVCF_WIDTH;
-				lvc.cx = 30;
-				ListView_InsertColumn(g_hWndListViewServers, 0, &lvc);
-
-				lvc.mask = LVCF_WIDTH | LVCF_TEXT;
-				lvc.cx = 240;
-				lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
-				ListView_InsertColumn(g_hWndListViewServers, 1, &lvc);
-
-				lvc.cx = 60;
-				lvc.pszText = LoadStr(L"Ping", IDS_PING);
-				ListView_InsertColumn(g_hWndListViewServers, 2, &lvc);
-
-				lvc.cx = 80;
-				lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
-				ListView_InsertColumn(g_hWndListViewServers, 3, &lvc);
-
-				lvc.cx = 70;
-				lvc.pszText = LoadStr(L"Version", IDS_VERSION);
-				ListView_InsertColumn(g_hWndListViewServers, 4, &lvc);
-
-				lvc.cx = 120;
-				lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
-				ListView_InsertColumn(g_hWndListViewServers, 5, &lvc);
-
-				lvc.cx = 100;
-				lvc.pszText = LoadStr(L"Map Name", IDS_MAPNAME);
-				ListView_InsertColumn(g_hWndListViewServers, 6, &lvc);
-			}
-
-			g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, g_hWndTab, nullptr, g_hInst, nullptr);
-			if (g_hWndListViewHistory)
-			{
-				SetWindowTheme(g_hWndListViewHistory, L"Explorer", nullptr);
-				ListView_SetExtendedListViewStyle(g_hWndListViewHistory, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-
-				LVCOLUMN lvc;
-				lvc.mask = LVCF_WIDTH;
-				lvc.cx = 30;
-				ListView_InsertColumn(g_hWndListViewHistory, 0, &lvc);
-
-				lvc.mask = LVCF_WIDTH | LVCF_TEXT;
-				lvc.cx = 220;
-				lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
-				ListView_InsertColumn(g_hWndListViewHistory, 1, &lvc);
-
-				lvc.cx = 60;
-				lvc.pszText = LoadStr(L"Ping", IDS_PING);
-				ListView_InsertColumn(g_hWndListViewHistory, 2, &lvc);
-
-				lvc.cx = 80;
-				lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
-				ListView_InsertColumn(g_hWndListViewHistory, 3, &lvc);
-
-				lvc.cx = 70;
-				lvc.pszText = LoadStr(L"Version", IDS_VERSION);
-				ListView_InsertColumn(g_hWndListViewHistory, 4, &lvc);
-
-				lvc.cx = 100;
-				lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
-				ListView_InsertColumn(g_hWndListViewHistory, 5, &lvc);
-
-				lvc.cx = 160;
-				lvc.pszText = LoadStr(L"Last Played", IDS_LASTPLAYED);
-				ListView_InsertColumn(g_hWndListViewHistory, 6, &lvc);
-			}
 		}
 
 		g_hWndGroupBox1 = CreateWindow(WC_BUTTON, LoadStr(L"Players", IDS_PLAYERSLIST), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, rcClient.right - 259, 0, 259, rcClient.bottom - 140, hWnd, nullptr, g_hInst, nullptr);
@@ -305,7 +306,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (curSel == 1 || curSel == 2)
 					{
 						std::string data;
-						if (CurlRequset(curSel == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data) == CURLE_OK)
+						if (CurlRequset(curSel == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4") == CURLE_OK)
 						{
 							serverList serversList;
 							if (ParseJson(data.c_str(), serversList))
@@ -328,29 +329,51 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 		case LVN_GETDISPINFO:
 		{
-			LV_DISPINFO *lpdi = (LV_DISPINFO *)lParam;
+			LPNMLVDISPINFOW di = (LPNMLVDISPINFOW)lParam;
 
-			if (lpdi->item.iSubItem == 1)
+			if (di->item.iSubItem == 1)
 			{
-				if (lpdi->item.mask & LVIF_TEXT)
+				if (di->item.mask & LVIF_TEXT)
 				{
-					server &server = (*g_serversList)[lpdi->item.iItem];
-					std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-					std::wstring ip = converter.from_bytes(server.first);
-					swprintf(lpdi->item.pszText, lpdi->item.cchTextMax, L"%s:%hu", ip.c_str(), server.second);
+					serverInfo &server = (*g_serversList)[di->item.iItem];
+					std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt_utf8;
+					swprintf(di->item.pszText, di->item.cchTextMax, L"%s:%hu", cvt_utf8.from_bytes(inet_ntoa(*(in_addr*)&server.ip)).c_str(), server.port);
 				}
 			}
 			else
 			{
-				if (lpdi->item.mask & LVIF_TEXT)
+				if (di->item.mask & LVIF_TEXT)
 				{
-					//swprintf(lpdi->item.pszText, lpdi->item.cchTextMax, L"Item %d", lpdi->item.iItem + 1);
+					//swprintf(di->item.pszText, di->item.cchTextMax, L"Item %d", di->item.iItem + 1);
 				}
 
-				if (lpdi->item.mask & LVIF_IMAGE)
+				if (di->item.mask & LVIF_IMAGE)
 				{
-					lpdi->item.iImage = 0;
+					di->item.iImage = 0;
 				}
+			}
+		}
+		break;
+		case NM_CUSTOMDRAW:
+		{
+			LPNMLVCUSTOMDRAW nmcd = (LPNMLVCUSTOMDRAW)lParam;
+			switch (nmcd->nmcd.dwDrawStage)
+			{
+			case CDDS_PREPAINT:
+				return CDRF_NOTIFYITEMDRAW;
+			case CDDS_ITEMPREPAINT:
+			{
+				COLORREF crText;
+				if ((nmcd->nmcd.dwItemSpec % 3) == 0)
+					crText = RGB(255, 0, 0);
+				else if ((nmcd->nmcd.dwItemSpec % 3) == 1)
+					crText = RGB(0, 255, 0);
+				else
+					crText = RGB(0, 0, 255);
+
+				nmcd->clrText = crText;
+				return CDRF_DODEFAULT;
+			}
 			}
 		}
 		break;
@@ -417,7 +440,7 @@ INT_PTR CALLBACK WaitingDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 	return (INT_PTR)FALSE;
 }
 
-CURLcode CurlRequset(const char *URL, std::string &data)
+CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent)
 {
 	CURLcode res = CURLE_FAILED_INIT;
 	CURL *curl = curl_easy_init();
@@ -425,6 +448,7 @@ CURLcode CurlRequset(const char *URL, std::string &data)
 	{
 		curl_easy_setopt(curl, CURLOPT_URL, URL);
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, (curl_write_callback)[](char *buffer, size_t size, size_t nitems, void *outstream) {
 			if (outstream)
@@ -461,9 +485,10 @@ bool ParseJson(const char *json, serverList &serversList)
 						{
 							auto ip = it->FindMember("ip");
 							auto port = it->FindMember("port");
-							if (ip != it->MemberEnd() && port != it->MemberEnd() && ip->value.IsString() && port->value.IsUint())
+							auto isOfficial = it->FindMember("is_official");
+							if (ip != it->MemberEnd() && port != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && isOfficial->value.IsBool())
 							{
-								server server(ip->value.GetString(), port->value.GetUint());
+								serverInfo server = { inet_addr(ip->value.GetString()), (uint16_t)port->value.GetUint(), isOfficial->value.GetBool() };
 								serversList.push_back(server);
 							}
 						}

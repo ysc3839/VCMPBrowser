@@ -9,6 +9,7 @@
 #include <Shellapi.h>
 #include <WindowsX.h>
 #include <Uxtheme.h>
+#include <Winsock2.h>
 
 #define RAPIDJSON_HAS_STDSTRING 1
 #include "rapidjson/document.h"
@@ -18,5 +19,11 @@
 
 #include "resource.h"
 
-typedef std::pair<std::string, uint16_t> server;
-typedef std::vector<std::pair<std::string, uint16_t>> serverList;
+struct serverInfo
+{
+	uint32_t ip;
+	uint16_t port;
+	bool isOfficial;
+};
+
+typedef std::vector<serverInfo> serverList;
