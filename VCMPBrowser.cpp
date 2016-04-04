@@ -9,7 +9,10 @@ HWND g_hWndGroupBox1;
 HWND g_hWndListViewPlayers;
 HWND g_hWndGroupBox2;
 HWND g_hWndStatusBar;
-serverList *g_serversList;
+serverMasterList *g_serversMasterList = nullptr;
+SOCKET g_UDPSocket;
+int g_currentTab = 0;// 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
+serverList g_serversList;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -17,7 +20,9 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    WaitingDialog(HWND, UINT, WPARAM, LPARAM);
 CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
-bool ParseJson(const char *json, serverList &serversList);
+bool ParseJson(const char *json, serverMasterList &serversList);
+void GetServerInfo(char *data, int length, serverInfoi &serverInfo);
+bool ConvertCharset(const char *from, std::wstring &to);
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
 
@@ -34,6 +39,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
 
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NOERROR)
+		return FALSE;
+
 	MyRegisterClass(hInstance);
 
 	if (!InitInstance(hInstance, nCmdShow))
@@ -46,6 +55,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+
+	WSACleanup();
 
 	curl_global_cleanup();
 
@@ -263,6 +274,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 
 		g_hWndStatusBar = CreateWindow(STATUSCLASSNAME, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
+
+		do {
+			g_UDPSocket = socket(AF_INET, SOCK_DGRAM, 0);
+			if (g_UDPSocket == INVALID_SOCKET)
+				break;
+
+			uint32_t timeout = 2000;
+			setsockopt(g_UDPSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+
+			struct sockaddr_in bindaddr = { AF_INET };
+			if (bind(g_UDPSocket, (sockaddr *)&bindaddr, 16) != NO_ERROR)
+			{
+				closesocket(g_UDPSocket);
+				break;
+			}
+
+			if (WSAAsyncSelect(g_UDPSocket, hWnd, WM_SOCKET, FD_READ) == SOCKET_ERROR)
+			{
+				closesocket(g_UDPSocket);
+				break;
+			}
+
+			return 0;
+		} while (0);
 	}
 	break;
 	case WM_COMMAND:
@@ -287,33 +322,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case TCN_SELCHANGE:
 		{
-			int curSel = TabCtrl_GetCurSel(((LPNMHDR)lParam)->hwndFrom);
-			switch (curSel)
+			g_currentTab = TabCtrl_GetCurSel(((LPNMHDR)lParam)->hwndFrom);
+			switch (g_currentTab)
 			{
 			case 0: // Favorites
 			case 1: // Internet
 			case 2: // Official
 			case 3: // Lan
+				if (g_serversMasterList)
+				{
+					delete g_serversMasterList;
+					g_serversMasterList = nullptr;
+				}
+				g_serversList.clear();
 				ListView_DeleteAllItems(g_hWndListViewServers);
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
 				ShowWindow(g_hWndListViewHistory, SW_HIDE);
-				if (curSel == 1 || curSel == 2 || curSel == 3)
+				UpdateWindow(g_hWndListViewServers);
+				if (g_currentTab == 1 || g_currentTab == 2 || g_currentTab == 3)
 				{
 					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, WaitingDialog);
 					SetWindowPos(hDialog, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 					UpdateWindow(hDialog);
 
-					if (curSel == 1 || curSel == 2)
+					if (g_currentTab == 1 || g_currentTab == 2)
 					{
 						std::string data;
-						if (CurlRequset(curSel == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4") == CURLE_OK)
+						if (CurlRequset(g_currentTab == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4") == CURLE_OK)
 						{
-							serverList serversList;
-							if (ParseJson(data.c_str(), serversList))
+							serverMasterList serversList;
+							if (ParseJson(data.data(), serversList))
 							{
-								g_serversList = new serverList(serversList);
+								for (auto it = serversList.begin(); it != serversList.end(); ++it)
+								{
+									uint32_t ip = it->address.ip;
+									uint16_t port = it->address.port;
 
-								ListView_SetItemCount(g_hWndListViewServers, g_serversList->size());
+									struct sockaddr_in sendaddr = { AF_INET };
+									sendaddr.sin_addr.s_addr = ip;
+									sendaddr.sin_port = htons(port);
+
+									char *cip = (char *)&ip;
+									char *cport = (char *)&port;
+									char buffer[] = { 'V', 'C', 'M', 'P', cip[0], cip[1], cip[2], cip[3], cport[0], cport[1], 'i' };
+
+									sendto(g_UDPSocket, buffer, sizeof(buffer), 0, (sockaddr *)&sendaddr, sizeof(sendaddr));
+									it->lastPing = GetTickCount();
+								}
+								g_serversMasterList = new serverMasterList(serversList);
 							}
 						}
 					}
@@ -335,9 +391,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				if (di->item.mask & LVIF_TEXT)
 				{
-					serverInfo &server = (*g_serversList)[di->item.iItem];
-					std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt_utf8;
-					swprintf(di->item.pszText, di->item.cchTextMax, L"%s:%hu", cvt_utf8.from_bytes(inet_ntoa(*(in_addr*)&server.ip)).c_str(), server.port);
+					size_t i = di->item.iItem;
+					if (g_serversList.size() > i)
+					{
+						auto &server = g_serversList[i];
+						char *IP = (char *)&(server.listInfo.address.ip);
+						std::wstring serverName;
+						ConvertCharset(server.info.serverName.c_str(), serverName);
+						swprintf(di->item.pszText, di->item.cchTextMax, L"%hhu.%hhu.%hhu.%hhu:%hu %s", IP[0], IP[1], IP[2], IP[3], server.listInfo.address.port, serverName.c_str());
+					}
+					
 				}
 			}
 			else
@@ -363,12 +426,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case CDDS_ITEMPREPAINT:
 			{
 				COLORREF crText;
-				if ((nmcd->nmcd.dwItemSpec % 3) == 0)
-					crText = RGB(255, 0, 0);
-				else if ((nmcd->nmcd.dwItemSpec % 3) == 1)
-					crText = RGB(0, 255, 0);
-				else
+				size_t i = nmcd->nmcd.dwItemSpec;
+				if (g_serversList.size() > i && g_serversList[i].listInfo.isOfficial)
 					crText = RGB(0, 0, 255);
+				else
+					crText = 0;
 
 				nmcd->clrText = crText;
 				return CDRF_DODEFAULT;
@@ -397,6 +459,71 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+	case WM_SOCKET:
+	{
+		if (WSAGETSELECTEVENT(lParam) == FD_READ)
+		{
+			char *recvBuf = (char *)calloc(1024, sizeof(char));
+			if (recvBuf)
+			{
+				struct sockaddr_in recvAddr;
+				int addrLen = sizeof(recvAddr);
+				int recvLen = recvfrom(g_UDPSocket, recvBuf, 1024, 0, (sockaddr *)&recvAddr, &addrLen);
+				if (recvLen != -1 && recvLen >= 11)
+				{
+					if (recvLen > 1024)
+						recvLen = 1024;
+
+					if (*(int *)recvBuf == 0x3430504D) // MP04
+					{
+						uint32_t ip = recvAddr.sin_addr.s_addr;
+						uint16_t port = ntohs(recvAddr.sin_port);
+
+						if (g_currentTab == 1 || g_currentTab == 2)
+						{
+							bool found = false;
+							serverMasterListInfo listInfo;
+							for (auto it = g_serversMasterList->begin(); it != g_serversMasterList->end(); ++it)
+							{
+								if (it->address.ip == ip && it->address.port == port)
+								{
+									found = true;
+									listInfo = *it;
+									break;
+								}
+							}
+
+							if (found)
+							{
+								serverInfoi infoi;
+								GetServerInfo(recvBuf, recvLen, infoi);
+								bool inList = false;
+								for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
+								{
+									if (it->listInfo.address.ip == ip && it->listInfo.address.port == port)
+									{
+										inList = true;
+										it->info = infoi;
+										break;
+									}
+								}
+								if (!inList)
+								{
+									serverInfo info = { listInfo, infoi };
+									g_serversList.push_back(info);
+
+									LVITEM lvi = { 0 };
+									ListView_InsertItem(g_hWndListViewServers, &lvi);
+								}
+							}
+						}
+					}
+				}
+				free(recvBuf);
+			}
+		}
+	}
+	break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -465,7 +592,7 @@ CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent)
 	return res;
 }
 
-bool ParseJson(const char *json, serverList &serversList)
+bool ParseJson(const char *json, serverMasterList &serversList)
 {
 	do {
 		rapidjson::Document dom;
@@ -489,7 +616,10 @@ bool ParseJson(const char *json, serverList &serversList)
 				auto isOfficial = it->FindMember("is_official");
 				if (ip != it->MemberEnd() && port != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && isOfficial->value.IsBool())
 				{
-					serverInfo server = { inet_addr(ip->value.GetString()), (uint16_t)port->value.GetUint(), isOfficial->value.GetBool() };
+					serverMasterListInfo server;
+					server.address.ip = inet_addr(ip->value.GetString());
+					server.address.port = (uint16_t)port->value.GetUint();
+					server.isOfficial = isOfficial->value.GetBool();
 					serversList.push_back(server);
 				}
 			}
@@ -497,4 +627,86 @@ bool ParseJson(const char *json, serverList &serversList)
 		return true;
 	} while (0);
 	return false;
+}
+
+void GetServerInfo(char *data, int length, serverInfoi &serverInfo)
+{
+	char *_data = data + 10;
+
+	char opcode = *_data;
+	_data += 1;
+	switch (opcode)
+	{
+	case 'i':
+	{
+		if (length < 11 + 12 + 1 + 2 + 2 + 4) // 12=Version name, 1=Password, 2=Players, 2=MaxPlayers, 4=strlen
+			break;
+
+		memmove(serverInfo.versionName, _data, sizeof(serverInfo.versionName));
+		_data += 12;
+
+		serverInfo.isPassworded = *_data != false;
+		_data += 1;
+
+		serverInfo.players = *(uint16_t *)_data;
+		_data += 2;
+
+		serverInfo.maxPlayers = *(uint16_t *)_data;
+		_data += 2;
+
+		int strLen = *(int *)_data;
+		_data += 4;
+		if (length < 11 + 12 + 1 + 2 + 2 + 4 + strLen + 4)
+			break;
+
+		char *serverName = (char *)alloca(strLen + 1);
+		serverInfo.serverName.clear();
+		serverInfo.serverName.append(_data, strLen);
+		serverInfo.serverName.append(1, '\0');
+		_data += strLen;
+
+		strLen = *(int *)_data;
+		_data += 4;
+		if (length < (_data - data) + strLen + 4)
+			break;
+
+		serverInfo.gameMode.clear();
+		serverInfo.gameMode.append(_data, strLen);
+		serverInfo.gameMode.append(1, '\0');
+		_data += strLen;
+
+		strLen = *(int *)_data;
+		_data += 4;
+		if (length >= (_data - data) + strLen)
+			break;
+
+		serverInfo.mapName.clear();
+		serverInfo.mapName.append(_data, strLen);
+		serverInfo.mapName.append(1, '\0');
+	}
+	break;
+	case 'c':
+		break;
+	}
+}
+
+bool ConvertCharset(const char *from, std::wstring &to)
+{
+	size_t size = MultiByteToWideChar(CP_ACP, 0, from, -1, nullptr, 0);
+
+	if (size == 0)
+		return false;
+
+	wchar_t *buffer = new wchar_t[size];
+	if (!buffer)
+		return false;
+
+	if (MultiByteToWideChar(CP_ACP, 0, from, -1, buffer, size) == 0)
+		return false;
+
+	to.clear();
+	to.append(buffer, size);
+
+	delete[] buffer;
+	return true;
 }

@@ -19,11 +19,37 @@
 
 #include "resource.h"
 
-struct serverInfo
+struct serverAddress
 {
 	uint32_t ip;
 	uint16_t port;
-	bool isOfficial;
 };
 
+struct serverMasterListInfo
+{
+	serverAddress address;
+	bool isOfficial;
+	uint32_t lastPing;
+};
+
+struct serverInfoi
+{
+	char versionName[12];
+	bool isPassworded;
+	uint16_t players;
+	uint16_t maxPlayers;
+	std::string serverName;
+	std::string gameMode;
+	std::string mapName;
+};
+
+struct serverInfo
+{
+	serverMasterListInfo listInfo;
+	serverInfoi info;
+};
+
+typedef std::vector<serverMasterListInfo> serverMasterList;
 typedef std::vector<serverInfo> serverList;
+
+#define WM_SOCKET WM_USER+1
