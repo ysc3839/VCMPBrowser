@@ -41,6 +41,7 @@ struct serverInfoi
 	std::string serverName;
 	std::string gameMode;
 	std::string mapName;
+	uint32_t lastPing2;
 	uint32_t lastRecv;
 };
 

@@ -23,6 +23,7 @@ CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
 bool ParseJson(const char *json, serverMasterList &serversList);
 bool GetServerInfo(char *data, int length, serverInfoi &serverInfo);
 bool ConvertCharset(const char *from, std::wstring &to);
+void SendQuery(serverAddress address, char opcode);
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
 
@@ -355,18 +356,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							{
 								for (auto it = serversList.begin(); it != serversList.end(); ++it)
 								{
-									uint32_t ip = it->address.ip;
-									uint16_t port = it->address.port;
-
-									struct sockaddr_in sendaddr = { AF_INET };
-									sendaddr.sin_addr.s_addr = ip;
-									sendaddr.sin_port = htons(port);
-
-									char *cip = (char *)&ip;
-									char *cport = (char *)&port;
-									char buffer[] = { 'V', 'C', 'M', 'P', cip[0], cip[1], cip[2], cip[3], cport[0], cport[1], 'i' };
-
-									sendto(g_UDPSocket, buffer, sizeof(buffer), 0, (sockaddr *)&sendaddr, sizeof(sendaddr));
+									SendQuery(it->address, 'i');
 									it->lastPing = GetTickCount();
 								}
 								g_serversMasterList = new serverMasterList(serversList);
@@ -408,7 +398,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 					case 2: // Ping
 					{
-						uint32_t ping = g_serversList[i].info.lastRecv - g_serversList[i].listInfo.lastPing;
+						uint32_t ping = g_serversList[i].info.lastRecv - g_serversList[i].info.lastPing2;
 						_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
 					}
 					break;
@@ -460,6 +450,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				nmcd->clrText = crText;
 				return CDRF_DODEFAULT;
 			}
+			}
+		}
+		break;
+		case NM_CLICK:
+		{
+			LPNMITEMACTIVATE nmitem = (LPNMITEMACTIVATE)lParam;
+			size_t i = nmitem->iItem;
+			if (g_serversList.size() > i)
+			{
+				SendQuery(g_serversList[i].listInfo.address, 'i');
+				g_serversList[i].listInfo.lastPing = GetTickCount();
 			}
 		}
 		break;
@@ -529,6 +530,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 										if (it->listInfo.address.ip == ip && it->listInfo.address.port == port)
 										{
 											inList = true;
+											infoi.lastPing2 = it->listInfo.lastPing;
 											it->info = infoi;
 											auto i = it - g_serversList.begin();
 											ListView_Update(g_hWndListViewServers, i);
@@ -537,6 +539,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 									}
 									if (!inList)
 									{
+										infoi.lastPing2 = listInfo.lastPing;
 										serverInfo info = { listInfo, infoi };
 										g_serversList.push_back(info);
 
@@ -741,4 +744,17 @@ bool ConvertCharset(const char *from, std::wstring &to)
 
 	delete[] buffer;
 	return true;
+}
+
+void SendQuery(serverAddress address, char opcode)
+{
+	struct sockaddr_in sendaddr = { AF_INET };
+	sendaddr.sin_addr.s_addr = address.ip;
+	sendaddr.sin_port = htons(address.port);
+
+	char *cip = (char *)&(address.ip);
+	char *cport = (char *)&(address.port);
+	char buffer[] = { 'V', 'C', 'M', 'P', cip[0], cip[1], cip[2], cip[3], cport[0], cport[1], opcode };
+
+	sendto(g_UDPSocket, buffer, sizeof(buffer), 0, (sockaddr *)&sendaddr, sizeof(sendaddr));
 }
