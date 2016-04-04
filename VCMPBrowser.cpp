@@ -406,8 +406,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							serverName._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
 						}
 						break;
-					case 2: // FIXME:Ping
-						break;
+					case 2: // Ping
+					{
+						uint32_t ping = g_serversList[i].info.lastRecv - g_serversList[i].listInfo.lastPing;
+						_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
+					}
+					break;
 					case 3: // Players
 						swprintf(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
 						break;
@@ -526,6 +530,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 										{
 											inList = true;
 											it->info = infoi;
+											auto i = it - g_serversList.begin();
+											ListView_Update(g_hWndListViewServers, i);
 											break;
 										}
 									}
@@ -654,6 +660,8 @@ bool ParseJson(const char *json, serverMasterList &serversList)
 
 bool GetServerInfo(char *data, int length, serverInfoi &serverInfo)
 {
+	serverInfo.lastRecv = GetTickCount();
+
 	char *_data = data + 10;
 
 	char opcode = *_data;
