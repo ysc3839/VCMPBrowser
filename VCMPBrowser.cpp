@@ -21,7 +21,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    WaitingDialog(HWND, UINT, WPARAM, LPARAM);
 CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
 bool ParseJson(const char *json, serverMasterList &serversList);
-void GetServerInfo(char *data, int length, serverInfoi &serverInfo);
+bool GetServerInfo(char *data, int length, serverInfoi &serverInfo);
 bool ConvertCharset(const char *from, std::wstring &to);
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
@@ -386,32 +386,53 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case LVN_GETDISPINFO:
 		{
 			LPNMLVDISPINFOW di = (LPNMLVDISPINFOW)lParam;
-
-			if (di->item.iSubItem == 1)
+			size_t i = di->item.iItem;
+			if (g_serversList.size() > i)
 			{
-				if (di->item.mask & LVIF_TEXT)
-				{
-					size_t i = di->item.iItem;
-					if (g_serversList.size() > i)
-					{
-						auto &server = g_serversList[i];
-						char *IP = (char *)&(server.listInfo.address.ip);
-						std::wstring serverName;
-						ConvertCharset(server.info.serverName.c_str(), serverName);
-						swprintf(di->item.pszText, di->item.cchTextMax, L"%hhu.%hhu.%hhu.%hhu:%hu %s", IP[0], IP[1], IP[2], IP[3], server.listInfo.address.port, serverName.c_str());
-					}
-					
-				}
-			}
-			else
-			{
-				if (di->item.mask & LVIF_TEXT)
-				{
-					//swprintf(di->item.pszText, di->item.cchTextMax, L"Item %d", di->item.iItem + 1);
-				}
-				if (di->item.mask & LVIF_IMAGE)
-				{
+				if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
 					di->item.iImage = 0;
+
+				if (di->item.mask & LVIF_TEXT)
+				{
+					switch (di->item.iSubItem)
+					{
+					case 0: // Icon
+						break;
+					case 1: // Server Name
+						if (di->item.cchTextMax > 0 && di->item.pszText)
+						{
+							std::wstring serverName;
+							ConvertCharset(g_serversList[i].info.serverName.c_str(), serverName);
+							serverName._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+						}
+						break;
+					case 2: // FIXME:Ping
+						break;
+					case 3: // Players
+						swprintf(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
+						break;
+					case 4: // Version
+					{
+						std::wstring versionName;
+						ConvertCharset(g_serversList[i].info.versionName, versionName);
+						versionName._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+					}
+					break;
+					case 5: // Gamemode
+					{
+						std::wstring gameMode;
+						ConvertCharset(g_serversList[i].info.gameMode.c_str(), gameMode);
+						gameMode._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+					}
+					break;
+					case 6: // Map name
+					{
+						std::wstring mapName;
+						ConvertCharset(g_serversList[i].info.mapName.c_str(), mapName);
+						mapName._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+					}
+					break;
+					}
 				}
 			}
 		}
@@ -496,24 +517,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							if (found)
 							{
 								serverInfoi infoi;
-								GetServerInfo(recvBuf, recvLen, infoi);
-								bool inList = false;
-								for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
+								if (GetServerInfo(recvBuf, recvLen, infoi))
 								{
-									if (it->listInfo.address.ip == ip && it->listInfo.address.port == port)
+									bool inList = false;
+									for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
 									{
-										inList = true;
-										it->info = infoi;
-										break;
+										if (it->listInfo.address.ip == ip && it->listInfo.address.port == port)
+										{
+											inList = true;
+											it->info = infoi;
+											break;
+										}
 									}
-								}
-								if (!inList)
-								{
-									serverInfo info = { listInfo, infoi };
-									g_serversList.push_back(info);
+									if (!inList)
+									{
+										serverInfo info = { listInfo, infoi };
+										g_serversList.push_back(info);
 
-									LVITEM lvi = { 0 };
-									ListView_InsertItem(g_hWndListViewServers, &lvi);
+										LVITEM lvi = { 0 };
+										ListView_InsertItem(g_hWndListViewServers, &lvi);
+									}
 								}
 							}
 						}
@@ -629,7 +652,7 @@ bool ParseJson(const char *json, serverMasterList &serversList)
 	return false;
 }
 
-void GetServerInfo(char *data, int length, serverInfoi &serverInfo)
+bool GetServerInfo(char *data, int length, serverInfoi &serverInfo)
 {
 	char *_data = data + 10;
 
@@ -640,7 +663,7 @@ void GetServerInfo(char *data, int length, serverInfoi &serverInfo)
 	case 'i':
 	{
 		if (length < 11 + 12 + 1 + 2 + 2 + 4) // 12=Version name, 1=Password, 2=Players, 2=MaxPlayers, 4=strlen
-			break;
+			return false;
 
 		memmove(serverInfo.versionName, _data, sizeof(serverInfo.versionName));
 		_data += 12;
@@ -657,7 +680,7 @@ void GetServerInfo(char *data, int length, serverInfoi &serverInfo)
 		int strLen = *(int *)_data;
 		_data += 4;
 		if (length < 11 + 12 + 1 + 2 + 2 + 4 + strLen + 4)
-			break;
+			return false;
 
 		char *serverName = (char *)alloca(strLen + 1);
 		serverInfo.serverName.clear();
@@ -668,7 +691,7 @@ void GetServerInfo(char *data, int length, serverInfoi &serverInfo)
 		strLen = *(int *)_data;
 		_data += 4;
 		if (length < (_data - data) + strLen + 4)
-			break;
+			return false;
 
 		serverInfo.gameMode.clear();
 		serverInfo.gameMode.append(_data, strLen);
@@ -677,8 +700,8 @@ void GetServerInfo(char *data, int length, serverInfoi &serverInfo)
 
 		strLen = *(int *)_data;
 		_data += 4;
-		if (length >= (_data - data) + strLen)
-			break;
+		if (length < (_data - data) + strLen)
+			return false;
 
 		serverInfo.mapName.clear();
 		serverInfo.mapName.append(_data, strLen);
@@ -688,6 +711,7 @@ void GetServerInfo(char *data, int length, serverInfoi &serverInfo)
 	case 'c':
 		break;
 	}
+	return true;
 }
 
 bool ConvertCharset(const char *from, std::wstring &to)
