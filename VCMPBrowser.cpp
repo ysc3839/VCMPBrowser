@@ -245,34 +245,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			SetWindowFont(g_hWndGroupBox2, hFont, FALSE);
 
-			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME1), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, 20, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			int y = 18;
+#define LINE_GAP 20
+
+			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME1), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, y, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, 20, 300, 16, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
+			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, y, 300, 16, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			y += LINE_GAP;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server IP:", IDS_SERVERIP), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, 40, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server IP:", IDS_SERVERIP), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, y, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, 40, 300, 16, g_hWndGroupBox2, (HMENU)1002, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, y, 300, 16, g_hWndGroupBox2, (HMENU)1002, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			y += LINE_GAP;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Players:", IDS_SERVERPLAYERS), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, 60, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Players:", IDS_SERVERPLAYERS), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, y, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, 60, 300, 16, g_hWndGroupBox2, (HMENU)1003, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, y, 300, 16, g_hWndGroupBox2, (HMENU)1003, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			y += LINE_GAP;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Ping:", IDS_SERVERPING), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, 80, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Ping:", IDS_SERVERPING), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, y, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, 80, 300, 16, g_hWndGroupBox2, (HMENU)1004, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, y, 300, 16, g_hWndGroupBox2, (HMENU)1004, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			y += LINE_GAP;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Gamemode:", IDS_SERVERGAMEMODE), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, 100, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Gamemode:", IDS_SERVERGAMEMODE), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, y, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, 100, 300, 16, g_hWndGroupBox2, (HMENU)1005, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, y, 300, 16, g_hWndGroupBox2, (HMENU)1005, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
 		}
 
@@ -375,7 +382,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						{
 							serverAddress address = { INADDR_BROADCAST, port };
 							SendQuery(address, 'i');
-							
+
 						}
 
 						broadcast = FALSE;
@@ -411,9 +418,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					case 1: // Server Name
 						if (di->item.cchTextMax > 0 && di->item.pszText)
 						{
-							std::wstring serverName;
-							ConvertCharset(g_serversList[i].info.serverName.c_str(), serverName);
-							serverName._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 						}
 						break;
 					case 2: // Ping
@@ -423,27 +428,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					break;
 					case 3: // Players
-						swprintf(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
+						swprintf_s(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
 						break;
 					case 4: // Version
 					{
-						std::wstring versionName;
-						ConvertCharset(g_serversList[i].info.versionName, versionName);
-						versionName._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+						MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.versionName, -1, di->item.pszText, di->item.cchTextMax);
 					}
 					break;
 					case 5: // Gamemode
 					{
-						std::wstring gameMode;
-						ConvertCharset(g_serversList[i].info.gameMode.c_str(), gameMode);
-						gameMode._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+						MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 					}
 					break;
 					case 6: // Map name
 					{
-						std::wstring mapName;
-						ConvertCharset(g_serversList[i].info.mapName.c_str(), mapName);
-						mapName._Copy_s(di->item.pszText, di->item.cchTextMax, di->item.cchTextMax);
+						MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 					}
 					break;
 					}
@@ -477,10 +476,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			LPNMITEMACTIVATE nmitem = (LPNMITEMACTIVATE)lParam;
 			size_t i = nmitem->iItem;
-			if (g_serversList.size() > i)
+			if (i != -1 && g_serversList.size() > i)
 			{
+				std::wstring wstr;
+
+				ConvertCharset(g_serversList[i].info.serverName.c_str(), wstr);
+				SetDlgItemText(g_hWndGroupBox2, 1001, wstr.c_str()); // Server Name
+
+				wchar_t ipstr[22];
+				char *ip = (char *)&(g_serversList[i].address.ip);
+				swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], g_serversList[i].address.port);
+				SetDlgItemText(g_hWndGroupBox2, 1002, ipstr); // Server IP
+
+				wchar_t playersstr[12];
+				swprintf_s(playersstr, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
+				SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
+
+				wchar_t pingsstr[12];
+				uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
+				_itow_s(ping, pingsstr, 10);
+				SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
+
+				ConvertCharset(g_serversList[i].info.gameMode.c_str(), wstr);
+				SetDlgItemText(g_hWndGroupBox2, 1005, wstr.c_str()); // Server Gamemode
+
 				SendQuery(g_serversList[i].address, 'i');
 				g_serversList[i].lastPing[0] = GetTickCount();
+			}
+			else
+			{
+				for (int i = 1001; i <= 1005; ++i)
+					SetDlgItemText(g_hWndGroupBox2, i, nullptr);
 			}
 		}
 		break;
