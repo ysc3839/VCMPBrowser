@@ -18,12 +18,12 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    WaitingDialog(HWND, UINT, WPARAM, LPARAM);
 CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
 bool ParseJson(const char *json, serverMasterList &serversList);
 bool GetServerInfo(char *data, int length, serverInfo &serverInfo);
 bool ConvertCharset(const char *from, std::wstring &to);
 void SendQuery(serverAddress address, char opcode);
+void test();
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
 
@@ -34,7 +34,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-
+	test();
 	//SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
 
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
@@ -346,7 +346,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				UpdateWindow(g_hWndListViewServers);
 				if (g_currentTab == 1 || g_currentTab == 2 || g_currentTab == 3)
 				{
-					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, WaitingDialog);
+					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, nullptr);
 					SetWindowPos(hDialog, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 					UpdateWindow(hDialog);
 
@@ -645,18 +645,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-INT_PTR CALLBACK WaitingDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	UNREFERENCED_PARAMETER(wParam);
-	UNREFERENCED_PARAMETER(lParam);
-	switch (message)
-	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
-	}
-	return (INT_PTR)FALSE;
-}
-
 CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent)
 {
 	CURLcode res = CURLE_FAILED_INIT;
@@ -814,4 +802,59 @@ void SendQuery(serverAddress address, char opcode)
 	char buffer[] = { 'V', 'C', 'M', 'P', cip[0], cip[1], cip[2], cip[3], cport[0], cport[1], opcode };
 
 	sendto(g_UDPSocket, buffer, sizeof(buffer), 0, (sockaddr *)&sendaddr, sizeof(sendaddr));
+}
+
+void test()
+{
+	rapidjson::StringBuffer jsonbuf;
+	rapidjson::Writer<rapidjson::StringBuffer> writer(jsonbuf);
+
+	writer.StartObject();
+	writer.Key("password");
+	writer.String("");
+	writer.Key("version");
+	writer.String("04rel003");
+	writer.EndObject();
+
+	std::string json(jsonbuf.GetString(), jsonbuf.GetSize());
+
+	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_DOWNLOAD), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
+		switch (message)
+		{
+		case WM_INITDIALOG:
+		{
+			std::string *json = (std::string *)lParam;
+			std::thread thread([](HWND hWnd, std::string *json) {
+				CURL *curl = curl_easy_init();
+				curl_easy_setopt(curl, CURLOPT_URL, "http://u04.maxorator.com/download");
+				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, true);
+				FILE *file = fopen("test.7z", "wb");
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+
+				struct curl_httppost* post = NULL;
+				struct curl_httppost* last = NULL;
+				curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json->c_str(), CURLFORM_END);
+				curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+
+				curl_easy_perform(curl);
+
+				fclose(file);
+
+				curl_easy_cleanup(curl);
+				PostMessage(hWnd, WM_CLOSE, 0, 0);
+				return 0;
+			}, hDlg, json);
+			thread.detach();
+		}
+		return (INT_PTR)TRUE;
+		case WM_COMMAND:
+			if (LOWORD(wParam) == IDCANCEL)
+			{
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
+			}
+			break;
+		}
+		return (INT_PTR)FALSE;
+	}, (LPARAM)&json);
 }

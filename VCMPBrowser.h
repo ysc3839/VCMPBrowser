@@ -1,7 +1,9 @@
 #pragma once
+#define _CRT_SECURE_NO_WARNINGS
 #include <vector>
 #include <utility>
 #include <string>
+#include <thread>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -13,6 +15,8 @@
 
 #define RAPIDJSON_HAS_STDSTRING 1
 #include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
 #define CURL_STATICLIB
 #include "curl/curl.h"
