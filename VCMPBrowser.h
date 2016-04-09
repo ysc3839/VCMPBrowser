@@ -32,7 +32,7 @@ struct serverMasterListInfo
 	uint32_t lastPing;
 };
 
-struct serverInfoi
+struct serverInfo
 {
 	char versionName[12];
 	bool isPassworded;
@@ -41,17 +41,18 @@ struct serverInfoi
 	std::string serverName;
 	std::string gameMode;
 	std::string mapName;
-	uint32_t lastPing2;
+};
+
+struct serverAllInfo
+{
+	serverAddress address;
+	serverInfo info;
+	bool isOfficial;
+	uint32_t lastPing[2];
 	uint32_t lastRecv;
 };
 
-struct serverInfo
-{
-	serverMasterListInfo listInfo;
-	serverInfoi info;
-};
-
 typedef std::vector<serverMasterListInfo> serverMasterList;
-typedef std::vector<serverInfo> serverList;
+typedef std::vector<serverAllInfo> serverList;
 
 #define WM_SOCKET WM_USER+1

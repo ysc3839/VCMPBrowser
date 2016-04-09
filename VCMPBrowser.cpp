@@ -21,7 +21,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    WaitingDialog(HWND, UINT, WPARAM, LPARAM);
 CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
 bool ParseJson(const char *json, serverMasterList &serversList);
-bool GetServerInfo(char *data, int length, serverInfoi &serverInfo);
+bool GetServerInfo(char *data, int length, serverInfo &serverInfo);
 bool ConvertCharset(const char *from, std::wstring &to);
 void SendQuery(serverAddress address, char opcode);
 
@@ -102,6 +102,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	static uint32_t lanLastPing = 0;
+
 	switch (message)
 	{
 	case WM_CREATE:
@@ -330,11 +332,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case 1: // Internet
 			case 2: // Official
 			case 3: // Lan
-				if (g_serversMasterList)
-				{
-					delete g_serversMasterList;
-					g_serversMasterList = nullptr;
-				}
 				g_serversList.clear();
 				ListView_DeleteAllItems(g_hWndListViewServers);
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
@@ -348,6 +345,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					if (g_currentTab == 1 || g_currentTab == 2)
 					{
+						if (g_serversMasterList)
+						{
+							delete g_serversMasterList;
+							g_serversMasterList = nullptr;
+						}
+
 						std::string data;
 						if (CurlRequset(g_currentTab == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4") == CURLE_OK)
 						{
@@ -362,6 +365,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								g_serversMasterList = new serverMasterList(serversList);
 							}
 						}
+					}
+					else if (g_currentTab == 3)
+					{
+						BOOL broadcast = TRUE;
+						setsockopt(g_UDPSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast));
+
+						for (uint16_t port = 8000; port <= 8200; ++port)
+						{
+							serverAddress address = { INADDR_BROADCAST, port };
+							SendQuery(address, 'i');
+							
+						}
+
+						broadcast = FALSE;
+						setsockopt(g_UDPSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast));
+
+						lanLastPing = GetTickCount();
 					}
 					DestroyWindow(hDialog);
 				}
@@ -398,7 +418,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 					case 2: // Ping
 					{
-						uint32_t ping = g_serversList[i].info.lastRecv - g_serversList[i].info.lastPing2;
+						uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
 						_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
 					}
 					break;
@@ -442,7 +462,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				COLORREF crText;
 				size_t i = nmcd->nmcd.dwItemSpec;
-				if (g_serversList.size() > i && g_serversList[i].listInfo.isOfficial)
+				if (g_serversList.size() > i && g_serversList[i].isOfficial)
 					crText = RGB(0, 0, 255);
 				else
 					crText = 0;
@@ -459,8 +479,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			size_t i = nmitem->iItem;
 			if (g_serversList.size() > i)
 			{
-				SendQuery(g_serversList[i].listInfo.address, 'i');
-				g_serversList[i].listInfo.lastPing = GetTickCount();
+				SendQuery(g_serversList[i].address, 'i');
+				g_serversList[i].lastPing[0] = GetTickCount();
 			}
 		}
 		break;
@@ -505,47 +525,60 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						uint32_t ip = recvAddr.sin_addr.s_addr;
 						uint16_t port = ntohs(recvAddr.sin_port);
 
+						bool found = false;
+						serverMasterListInfo masterInfo;
 						if (g_currentTab == 1 || g_currentTab == 2)
 						{
-							bool found = false;
-							serverMasterListInfo listInfo;
 							for (auto it = g_serversMasterList->begin(); it != g_serversMasterList->end(); ++it)
 							{
 								if (it->address.ip == ip && it->address.port == port)
 								{
 									found = true;
-									listInfo = *it;
+									masterInfo = *it;
 									break;
 								}
 							}
+						}
+						else if (g_currentTab == 3) // Lan
+						{
+							found = true;
+							masterInfo.address = { ip, port };
+							masterInfo.isOfficial = false;
+							masterInfo.lastPing = lanLastPing;
+						}
 
-							if (found)
+						if (found)
+						{
+							serverInfo info;
+							if (GetServerInfo(recvBuf, recvLen, info))
 							{
-								serverInfoi infoi;
-								if (GetServerInfo(recvBuf, recvLen, infoi))
+								bool inList = false;
+								for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
 								{
-									bool inList = false;
-									for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
+									if (it->address.ip == ip && it->address.port == port)
 									{
-										if (it->listInfo.address.ip == ip && it->listInfo.address.port == port)
-										{
-											inList = true;
-											infoi.lastPing2 = it->listInfo.lastPing;
-											it->info = infoi;
-											auto i = it - g_serversList.begin();
-											ListView_Update(g_hWndListViewServers, i);
-											break;
-										}
+										inList = true;
+										it->lastRecv = GetTickCount();
+										it->lastPing[1] = it->lastPing[0];
+										it->info = info;
+										auto i = it - g_serversList.begin();
+										ListView_Update(g_hWndListViewServers, i);
+										break;
 									}
-									if (!inList)
-									{
-										infoi.lastPing2 = listInfo.lastPing;
-										serverInfo info = { listInfo, infoi };
-										g_serversList.push_back(info);
+								}
+								if (!inList)
+								{
+									serverAllInfo allInfo;
+									allInfo.address = masterInfo.address;
+									allInfo.info = info;
+									allInfo.isOfficial = masterInfo.isOfficial;
+									allInfo.lastPing[0] = masterInfo.lastPing;
+									allInfo.lastPing[1] = masterInfo.lastPing;
+									allInfo.lastRecv = GetTickCount();
+									g_serversList.push_back(allInfo);
 
-										LVITEM lvi = { 0 };
-										ListView_InsertItem(g_hWndListViewServers, &lvi);
-									}
+									LVITEM lvi = { 0 };
+									ListView_InsertItem(g_hWndListViewServers, &lvi);
 								}
 							}
 						}
@@ -661,10 +694,8 @@ bool ParseJson(const char *json, serverMasterList &serversList)
 	return false;
 }
 
-bool GetServerInfo(char *data, int length, serverInfoi &serverInfo)
+bool GetServerInfo(char *data, int length, serverInfo &serverInfo)
 {
-	serverInfo.lastRecv = GetTickCount();
-
 	char *_data = data + 10;
 
 	char opcode = *_data;
