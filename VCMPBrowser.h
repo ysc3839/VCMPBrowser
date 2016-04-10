@@ -4,6 +4,7 @@
 #include <utility>
 #include <string>
 #include <thread>
+#include <atomic>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -60,3 +61,4 @@ typedef std::vector<serverMasterListInfo> serverMasterList;
 typedef std::vector<serverAllInfo> serverList;
 
 #define WM_SOCKET WM_USER+1
+#define WM_PROGRESS WM_USER+1 // wParam=progress, lParam=speed

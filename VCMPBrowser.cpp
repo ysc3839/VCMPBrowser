@@ -819,6 +819,7 @@ void test()
 	std::string json(jsonbuf.GetString(), jsonbuf.GetSize());
 
 	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_DOWNLOAD), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
+		static long running = false;
 		switch (message)
 		{
 		case WM_INITDIALOG:
@@ -826,21 +827,57 @@ void test()
 			std::string *json = (std::string *)lParam;
 			std::thread thread([](HWND hWnd, std::string *json) {
 				CURL *curl = curl_easy_init();
-				curl_easy_setopt(curl, CURLOPT_URL, "http://u04.maxorator.com/download");
-				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, true);
-				FILE *file = fopen("test.7z", "wb");
-				curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+				if (curl)
+				{
+					curl_easy_setopt(curl, CURLOPT_URL, "http://u04.maxorator.com/download");
 
-				struct curl_httppost* post = NULL;
-				struct curl_httppost* last = NULL;
-				curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json->c_str(), CURLFORM_END);
-				curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+					curl_easy_setopt(curl, CURLOPT_NOPROGRESS, false);
+					struct progInfo {
+						HWND hWnd;
+						uint32_t time;
+						curl_off_t size;
+					};
+					progInfo progress = { hWnd, GetTickCount(), 0 };
+					curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress);
+					curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, (curl_xferinfo_callback)[](void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) -> int {
+						if (!_InterlockedCompareExchange(&running, 0, 0)) // Cancel
+							return 1;
 
-				curl_easy_perform(curl);
+						if (dltotal != 0 && ultotal != 0)
+						{
+							progInfo *info = (progInfo *)p;
+							uint32_t now = GetTickCount(), span_ms = now - info->time;
+							if (span_ms >= 500) // Update every 0.5s
+							{
+								info->time = now;
+								curl_off_t dlsize = dlnow > ulnow ? dlnow : ulnow;
+								curl_off_t current_speed = (dlsize - info->size) / span_ms * CURL_OFF_T_C(1000);
+								info->size = dlsize;
 
-				fclose(file);
+								PostMessage(info->hWnd, WM_PROGRESS, (long)(dlnow * CURL_OFF_T_C(100) / dltotal), (long)(current_speed));
+							}
+						}
+						return 0;
+					});
 
-				curl_easy_cleanup(curl);
+					curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, (curl_write_callback)[](char *buffer, size_t size, size_t nitems, void *outstream) -> size_t {
+						return size * nitems;
+					});
+					//FILE *file = fopen("test.7z", "wb");
+					//curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+
+					struct curl_httppost* post = NULL;
+					struct curl_httppost* last = NULL;
+					curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json->c_str(), CURLFORM_END);
+					curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+
+					running = true;
+					curl_easy_perform(curl);
+					running = false;
+					//fclose(file);
+
+					curl_easy_cleanup(curl);
+				}
 				PostMessage(hWnd, WM_CLOSE, 0, 0);
 				return 0;
 			}, hDlg, json);
@@ -850,9 +887,16 @@ void test()
 		case WM_COMMAND:
 			if (LOWORD(wParam) == IDCANCEL)
 			{
+				running = false;
 				EndDialog(hDlg, LOWORD(wParam));
 				return (INT_PTR)TRUE;
 			}
+			break;
+		case WM_PROGRESS:
+			SendDlgItemMessage(hDlg, IDC_PROGRESS1, PBM_SETPOS, wParam, 0);
+			wchar_t t[32];
+			swprintf_s(t, L"%u KB/s", lParam / 1024);
+			SetDlgItemText(hDlg, IDC_STATIC1, t);
 			break;
 		}
 		return (INT_PTR)FALSE;
