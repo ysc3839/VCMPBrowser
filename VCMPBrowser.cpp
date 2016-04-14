@@ -23,7 +23,7 @@ bool ParseJson(const char *json, serverMasterList &serversList);
 bool GetServerInfo(char *data, int length, serverInfo &serverInfo);
 bool ConvertCharset(const char *from, std::wstring &to);
 void SendQuery(serverAddress address, char opcode);
-void test();
+void DownloadVCMPGame(const char *version, const char *password = "");
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
 
@@ -34,7 +34,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-	test();
+	DownloadVCMPGame("04rel003");
 	//SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
 
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
@@ -371,6 +371,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								}
 								g_serversMasterList = new serverMasterList(serversList);
 							}
+							else
+							{
+								MessageBox(hWnd, LoadStr(L"Can't parse master list data.", IDS_MASTERLISTDATA), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
+							}
+						}
+						else
+						{
+							MessageBox(hWnd, LoadStr(L"Can't get information from master list.", IDS_MASTERLISTFAILED), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 						}
 					}
 					else if (g_currentTab == 3)
@@ -653,6 +661,7 @@ CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent)
 	{
 		curl_easy_setopt(curl, CURLOPT_URL, URL);
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, (curl_write_callback)[](char *buffer, size_t size, size_t nitems, void *outstream) {
@@ -804,19 +813,17 @@ void SendQuery(serverAddress address, char opcode)
 	sendto(g_UDPSocket, buffer, sizeof(buffer), 0, (sockaddr *)&sendaddr, sizeof(sendaddr));
 }
 
-void test()
+void DownloadVCMPGame(const char *version, const char *password)
 {
-	rapidjson::StringBuffer jsonbuf;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(jsonbuf);
+	rapidjson::StringBuffer json;
+	rapidjson::Writer<rapidjson::StringBuffer> writer(json);
 
 	writer.StartObject();
 	writer.Key("password");
-	writer.String("");
+	writer.String(password);
 	writer.Key("version");
-	writer.String("04rel003");
+	writer.String(version);
 	writer.EndObject();
-
-	std::string json(jsonbuf.GetString(), jsonbuf.GetSize());
 
 	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_DOWNLOAD), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
 		static long running = false;
@@ -824,12 +831,23 @@ void test()
 		{
 		case WM_INITDIALOG:
 		{
-			std::string *json = (std::string *)lParam;
-			std::thread thread([](HWND hWnd, std::string *json) {
+			char *json = (char *)lParam;
+			std::thread thread([](HWND hWnd, char *json) {
 				CURL *curl = curl_easy_init();
 				if (curl)
 				{
 					curl_easy_setopt(curl, CURLOPT_URL, "http://u04.maxorator.com/download");
+
+					char fileName[16];
+					srand(GetTickCount());
+					snprintf(fileName, 16, "tmp%.4X.7z", rand());
+					FILE *file = fopen(fileName, "wb");
+					if (file == nullptr)
+					{
+						curl_easy_cleanup(curl);
+						return 0;
+					}
+					curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
 
 					curl_easy_setopt(curl, CURLOPT_NOPROGRESS, false);
 					struct progInfo {
@@ -842,7 +860,6 @@ void test()
 					curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, (curl_xferinfo_callback)[](void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) -> int {
 						if (!_InterlockedCompareExchange(&running, 0, 0)) // Cancel
 							return 1;
-
 						if (dltotal != 0 && ultotal != 0)
 						{
 							progInfo *info = (progInfo *)p;
@@ -860,21 +877,16 @@ void test()
 						return 0;
 					});
 
-					curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, (curl_write_callback)[](char *buffer, size_t size, size_t nitems, void *outstream) -> size_t {
-						return size * nitems;
-					});
-					//FILE *file = fopen("test.7z", "wb");
-					//curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
-
 					struct curl_httppost* post = NULL;
 					struct curl_httppost* last = NULL;
-					curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json->c_str(), CURLFORM_END);
+					curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json, CURLFORM_END);
 					curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
 
 					running = true;
 					curl_easy_perform(curl);
 					running = false;
-					//fclose(file);
+
+					fclose(file);
 
 					curl_easy_cleanup(curl);
 				}
@@ -887,18 +899,32 @@ void test()
 		case WM_COMMAND:
 			if (LOWORD(wParam) == IDCANCEL)
 			{
-				running = false;
 				EndDialog(hDlg, LOWORD(wParam));
 				return (INT_PTR)TRUE;
 			}
 			break;
+		case WM_DESTROY:
+			running = false;
+			return (INT_PTR)TRUE;
 		case WM_PROGRESS:
 			SendDlgItemMessage(hDlg, IDC_PROGRESS1, PBM_SETPOS, wParam, 0);
-			wchar_t t[32];
-			swprintf_s(t, L"%u KB/s", lParam / 1024);
-			SetDlgItemText(hDlg, IDC_STATIC1, t);
+			wchar_t *unit = L"B/s";
+			float speed = (float)lParam;
+			if (speed > 1024)
+			{
+				speed = speed / 1024; // KB
+				unit = L"KB/s";
+				if (speed > 1024)
+				{
+					speed = speed / 1024; // MB
+					unit = L"MB/s";
+				}
+			}
+			wchar_t speedText[32];
+			swprintf_s(speedText, L"%.1f %s", speed, unit);
+			SetDlgItemText(hDlg, IDC_STATIC1, speedText);
 			break;
 		}
 		return (INT_PTR)FALSE;
-	}, (LPARAM)&json);
+	}, (LPARAM)json.GetString());
 }
