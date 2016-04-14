@@ -344,61 +344,60 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
 				ShowWindow(g_hWndListViewHistory, SW_HIDE);
 				UpdateWindow(g_hWndListViewServers);
-				if (g_currentTab == 1 || g_currentTab == 2 || g_currentTab == 3)
+				if (g_currentTab == 1 || g_currentTab == 2)
 				{
 					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, nullptr);
 					SetWindowPos(hDialog, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 					UpdateWindow(hDialog);
 
-					if (g_currentTab == 1 || g_currentTab == 2)
+					if (g_serversMasterList)
 					{
-						if (g_serversMasterList)
-						{
-							delete g_serversMasterList;
-							g_serversMasterList = nullptr;
-						}
+						delete g_serversMasterList;
+						g_serversMasterList = nullptr;
+					}
 
-						std::string data;
-						if (CurlRequset(g_currentTab == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4") == CURLE_OK)
+					std::string data;
+					data.reserve(2048);
+					if (CurlRequset(g_currentTab == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4") == CURLE_OK)
+					{
+						serverMasterList serversList;
+						if (ParseJson(data.data(), serversList))
 						{
-							serverMasterList serversList;
-							if (ParseJson(data.data(), serversList))
+							for (auto it = serversList.begin(); it != serversList.end(); ++it)
 							{
-								for (auto it = serversList.begin(); it != serversList.end(); ++it)
-								{
-									SendQuery(it->address, 'i');
-									it->lastPing = GetTickCount();
-								}
-								g_serversMasterList = new serverMasterList(serversList);
+								SendQuery(it->address, 'i');
+								it->lastPing = GetTickCount();
 							}
-							else
-							{
-								MessageBox(hWnd, LoadStr(L"Can't parse master list data.", IDS_MASTERLISTDATA), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
-							}
+							g_serversMasterList = new serverMasterList(serversList);
 						}
 						else
 						{
-							MessageBox(hWnd, LoadStr(L"Can't get information from master list.", IDS_MASTERLISTFAILED), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
+							MessageBox(hWnd, LoadStr(L"Can't parse master list data.", IDS_MASTERLISTDATA), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 						}
 					}
-					else if (g_currentTab == 3)
+					else
 					{
-						BOOL broadcast = TRUE;
-						setsockopt(g_UDPSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast));
-
-						for (uint16_t port = 8000; port <= 8200; ++port)
-						{
-							serverAddress address = { INADDR_BROADCAST, port };
-							SendQuery(address, 'i');
-
-						}
-
-						broadcast = FALSE;
-						setsockopt(g_UDPSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast));
-
-						lanLastPing = GetTickCount();
+						MessageBox(hWnd, LoadStr(L"Can't get information from master list.", IDS_MASTERLISTFAILED), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 					}
+
 					DestroyWindow(hDialog);
+				}
+				else if (g_currentTab == 3)
+				{
+					BOOL broadcast = TRUE;
+					setsockopt(g_UDPSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast));
+
+					for (uint16_t port = 8000; port <= 8200; ++port)
+					{
+						serverAddress address = { INADDR_BROADCAST, port };
+						SendQuery(address, 'i');
+
+					}
+
+					broadcast = FALSE;
+					setsockopt(g_UDPSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast));
+
+					lanLastPing = GetTickCount();
 				}
 				break;
 			case 4: // History
