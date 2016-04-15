@@ -882,10 +882,15 @@ void DownloadVCMPGame(const char *version, const char *password)
 					curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
 
 					running = true;
-					curl_easy_perform(curl);
+					CURLcode ret = curl_easy_perform(curl);
 					running = false;
 
 					fclose(file);
+
+					if (ret == CURLE_ABORTED_BY_CALLBACK) // User cancel
+					{
+						remove(fileName);
+					}
 
 					curl_easy_cleanup(curl);
 				}
