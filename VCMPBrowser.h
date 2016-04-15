@@ -62,3 +62,7 @@ typedef std::vector<serverAllInfo> serverList;
 
 #define WM_SOCKET WM_USER+1
 #define WM_PROGRESS WM_USER+1 // wParam=progress, lParam=speed
+
+// UI sizes
+#define UI_PLAYERLIST_WIDTH 200
+#define UI_SERVERINFO_HEIGHT 140

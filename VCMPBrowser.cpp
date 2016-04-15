@@ -112,7 +112,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		RECT rcClient;
 		GetClientRect(hWnd, &rcClient);
 
-		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - UI_PLAYERLIST_WIDTH - 4, rcClient.bottom - UI_SERVERINFO_HEIGHT - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewServers)
 		{
 			SetWindowTheme(g_hWndListViewServers, L"Explorer", nullptr);
@@ -149,7 +149,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ListView_InsertColumn(g_hWndListViewServers, 6, &lvc);
 		}
 
-		g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - 259 - 4, rcClient.bottom - 140 - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - UI_PLAYERLIST_WIDTH - 4, rcClient.bottom - UI_SERVERINFO_HEIGHT - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewHistory)
 		{
 			SetWindowTheme(g_hWndListViewHistory, L"Explorer", nullptr);
@@ -186,7 +186,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ListView_InsertColumn(g_hWndListViewHistory, 6, &lvc);
 		}
 
-		g_hWndTab = CreateWindow(WC_TABCONTROL, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 0, 0, rcClient.right - 259, rcClient.bottom - 120, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndTab = CreateWindow(WC_TABCONTROL, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 0, 0, rcClient.right - UI_PLAYERLIST_WIDTH, rcClient.bottom - UI_SERVERINFO_HEIGHT, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndTab)
 		{
 			SetWindowFont(g_hWndTab, hFont, FALSE);
@@ -222,12 +222,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			TabCtrl_InsertItem(g_hWndTab, 4, &tie);
 		}
 
-		g_hWndGroupBox1 = CreateWindow(WC_BUTTON, LoadStr(L"Players", IDS_PLAYERSLIST), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, rcClient.right - 259, 0, 259, rcClient.bottom - 140, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndGroupBox1 = CreateWindow(WC_BUTTON, LoadStr(L"Players", IDS_PLAYERSLIST), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, rcClient.right - UI_PLAYERLIST_WIDTH, 0, UI_PLAYERLIST_WIDTH, rcClient.bottom - UI_SERVERINFO_HEIGHT, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndGroupBox1)
 		{
 			SetWindowFont(g_hWndGroupBox1, hFont, FALSE);
 
-			g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL, 1, 12, 259 - 2, rcClient.bottom - 140 - 12 - 2, g_hWndGroupBox1, nullptr, g_hInst, nullptr);
+			g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL, 1, 12, UI_PLAYERLIST_WIDTH - 2, rcClient.bottom - UI_SERVERINFO_HEIGHT - 12 - 2, g_hWndGroupBox1, nullptr, g_hInst, nullptr);
 			if (g_hWndListViewPlayers)
 			{
 				SetWindowTheme(g_hWndListViewPlayers, L"Explorer", nullptr);
@@ -235,12 +235,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				LVCOLUMN lvc;
 				lvc.mask = LVCF_WIDTH;
-				lvc.cx = 257;
+				lvc.cx = UI_PLAYERLIST_WIDTH - 2;
 				ListView_InsertColumn(g_hWndListViewPlayers, 0, &lvc);
 			}
 		}
 
-		g_hWndGroupBox2 = CreateWindow(WC_BUTTON, LoadStr(L"Server Info", IDS_SERVERINFO), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, 0, rcClient.bottom - 140, rcClient.right, 118, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndGroupBox2 = CreateWindow(WC_BUTTON, LoadStr(L"Server Info", IDS_SERVERINFO), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, 0, rcClient.bottom - UI_SERVERINFO_HEIGHT, rcClient.right, 118, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndGroupBox2)
 		{
 			SetWindowFont(g_hWndGroupBox2, hFont, FALSE);
@@ -523,12 +523,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 	{
 		int clientWidth = GET_X_LPARAM(lParam), clientHeight = GET_Y_LPARAM(lParam);
-		SetWindowPos(g_hWndTab, 0, 0, 0, clientWidth - 259, clientHeight - 140, SWP_NOZORDER);
-		SetWindowPos(g_hWndListViewServers, 0, 1, 21, clientWidth - 259 - 4, clientHeight - 140 - 21 - 2, SWP_NOZORDER);
-		SetWindowPos(g_hWndListViewHistory, 0, 1, 21, clientWidth - 259 - 4, clientHeight - 140 - 21 - 2, SWP_NOZORDER);
-		SetWindowPos(g_hWndGroupBox1, 0, clientWidth - 259, 0, 259, clientHeight - 140, SWP_NOZORDER);
-		SetWindowPos(g_hWndListViewPlayers, 0, 1, 12, 259 - 2, clientHeight - 140 - 12 - 2, SWP_NOZORDER);
-		SetWindowPos(g_hWndGroupBox2, 0, 0, clientHeight - 140, clientWidth, 118, SWP_NOZORDER);
+		SetWindowPos(g_hWndTab, 0, 0, 0, clientWidth - UI_PLAYERLIST_WIDTH, clientHeight - UI_SERVERINFO_HEIGHT, SWP_NOZORDER);
+		SetWindowPos(g_hWndListViewServers, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
+		SetWindowPos(g_hWndListViewHistory, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
+		SetWindowPos(g_hWndGroupBox1, 0, clientWidth - UI_PLAYERLIST_WIDTH, 0, UI_PLAYERLIST_WIDTH, clientHeight - UI_SERVERINFO_HEIGHT, SWP_NOZORDER);
+		SetWindowPos(g_hWndListViewPlayers, 0, 1, 12, UI_PLAYERLIST_WIDTH - 2, clientHeight - UI_SERVERINFO_HEIGHT - 12 - 2, SWP_NOZORDER);
+		SetWindowPos(g_hWndGroupBox2, 0, 0, clientHeight - UI_SERVERINFO_HEIGHT, clientWidth, 118, SWP_NOZORDER);
 		SendMessage(g_hWndStatusBar, WM_SIZE, 0, 0);
 	}
 	break;
