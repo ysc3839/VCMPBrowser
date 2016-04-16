@@ -21,6 +21,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
 bool ParseJson(const char *json, serverMasterList &serversList);
 bool GetServerInfo(char *data, int length, serverInfo &serverInfo);
+bool GetServerPlayers(char *data, int length, serverPlayers &serverPlayers);
 bool ConvertCharset(const char *from, std::wstring &to);
 void SendQuery(serverAddress address, char opcode);
 void DownloadVCMPGame(const char *version, const char *password = "");
@@ -34,8 +35,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-	DownloadVCMPGame("04rel003");
-	//SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
+
+	SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
 
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
@@ -222,22 +223,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			TabCtrl_InsertItem(g_hWndTab, 4, &tie);
 		}
 
+		g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL | LVS_OWNERDATA, rcClient.right - UI_PLAYERLIST_WIDTH + 1, 12, UI_PLAYERLIST_WIDTH - 2, rcClient.bottom - UI_SERVERINFO_HEIGHT - 12 - 2, hWnd, nullptr, g_hInst, nullptr);
+		if (g_hWndListViewPlayers)
+		{
+			SetWindowTheme(g_hWndListViewPlayers, L"Explorer", nullptr);
+			ListView_SetExtendedListViewStyle(g_hWndListViewPlayers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+
+			LVCOLUMN lvc;
+			lvc.mask = LVCF_WIDTH;
+			lvc.cx = UI_PLAYERLIST_WIDTH - 2;
+			ListView_InsertColumn(g_hWndListViewPlayers, 0, &lvc);
+		}
+
 		g_hWndGroupBox1 = CreateWindow(WC_BUTTON, LoadStr(L"Players", IDS_PLAYERSLIST), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, rcClient.right - UI_PLAYERLIST_WIDTH, 0, UI_PLAYERLIST_WIDTH, rcClient.bottom - UI_SERVERINFO_HEIGHT, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndGroupBox1)
 		{
 			SetWindowFont(g_hWndGroupBox1, hFont, FALSE);
-
-			g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL, 1, 12, UI_PLAYERLIST_WIDTH - 2, rcClient.bottom - UI_SERVERINFO_HEIGHT - 12 - 2, g_hWndGroupBox1, nullptr, g_hInst, nullptr);
-			if (g_hWndListViewPlayers)
-			{
-				SetWindowTheme(g_hWndListViewPlayers, L"Explorer", nullptr);
-				ListView_SetExtendedListViewStyle(g_hWndListViewPlayers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-
-				LVCOLUMN lvc;
-				lvc.mask = LVCF_WIDTH;
-				lvc.cx = UI_PLAYERLIST_WIDTH - 2;
-				ListView_InsertColumn(g_hWndListViewPlayers, 0, &lvc);
-			}
 		}
 
 		g_hWndGroupBox2 = CreateWindow(WC_BUTTON, LoadStr(L"Server Info", IDS_SERVERINFO), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, 0, rcClient.bottom - UI_SERVERINFO_HEIGHT, rcClient.right, 118, hWnd, nullptr, g_hInst, nullptr);
@@ -397,7 +398,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						serverAddress address = { INADDR_BROADCAST, port };
 						SendQuery(address, 'i');
-
 					}
 
 					broadcast = FALSE;
@@ -416,48 +416,72 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case LVN_GETDISPINFO:
 		{
 			LPNMLVDISPINFOW di = (LPNMLVDISPINFOW)lParam;
-			size_t i = di->item.iItem;
-			if (g_serversList.size() > i)
+			if (di->hdr.hwndFrom == g_hWndListViewServers)
 			{
-				if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
-					di->item.iImage = 0;
-
-				if (di->item.mask & LVIF_TEXT)
+				size_t i = di->item.iItem;
+				if (g_serversList.size() > i)
 				{
-					switch (di->item.iSubItem)
+					if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
+						di->item.iImage = 0;
+
+					if (di->item.mask & LVIF_TEXT)
 					{
-					case 0: // Icon
-						break;
-					case 1: // Server Name
-						if (di->item.cchTextMax > 0 && di->item.pszText)
+						switch (di->item.iSubItem)
 						{
-							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+						case 0: // Icon
+							break;
+						case 1: // Server Name
+							if (di->item.cchTextMax > 0 && di->item.pszText)
+							{
+								MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+							}
+							break;
+						case 2: // Ping
+						{
+							uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
+							_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
 						}
 						break;
-					case 2: // Ping
-					{
-						uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
-						_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
-					}
-					break;
-					case 3: // Players
-						swprintf_s(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
+						case 3: // Players
+							swprintf_s(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
+							break;
+						case 4: // Version
+						{
+							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.versionName, -1, di->item.pszText, di->item.cchTextMax);
+						}
 						break;
-					case 4: // Version
-					{
-						MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.versionName, -1, di->item.pszText, di->item.cchTextMax);
+						case 5: // Gamemode
+						{
+							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+						}
+						break;
+						case 6: // Map name
+						{
+							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+						}
+						break;
+						}
 					}
-					break;
-					case 5: // Gamemode
+				}
+			}
+			else if (di->hdr.hwndFrom == g_hWndListViewHistory) // FIXME
+			{
+
+			}
+			else if (di->hdr.hwndFrom == g_hWndListViewPlayers)
+			{
+				size_t i = ListView_GetSelectionMark(g_hWndListViewServers);
+				if (g_serversList.size() > i)
+				{
+					serverPlayers &players = g_serversList[i].players;
+
+					size_t j = di->item.iItem;
+					if (players.size() > j)
 					{
-						MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
-					}
-					break;
-					case 6: // Map name
-					{
-						MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
-					}
-					break;
+						if (di->item.mask & LVIF_TEXT)
+						{
+							MultiByteToWideChar(CP_ACP, 0, players[j].name, -1, di->item.pszText, di->item.cchTextMax);
+						}
 					}
 				}
 			}
@@ -466,60 +490,67 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case NM_CUSTOMDRAW:
 		{
 			LPNMLVCUSTOMDRAW nmcd = (LPNMLVCUSTOMDRAW)lParam;
-			switch (nmcd->nmcd.dwDrawStage)
+			if (nmcd->nmcd.hdr.hwndFrom == g_hWndListViewServers)
 			{
-			case CDDS_PREPAINT:
-				return CDRF_NOTIFYITEMDRAW;
-			case CDDS_ITEMPREPAINT:
-			{
-				COLORREF crText;
-				size_t i = nmcd->nmcd.dwItemSpec;
-				if (g_serversList.size() > i && g_serversList[i].isOfficial)
-					crText = RGB(0, 0, 255);
-				else
-					crText = 0;
+				switch (nmcd->nmcd.dwDrawStage)
+				{
+				case CDDS_PREPAINT:
+					return CDRF_NOTIFYITEMDRAW;
+				case CDDS_ITEMPREPAINT:
+				{
+					COLORREF crText;
+					size_t i = nmcd->nmcd.dwItemSpec;
+					if (g_serversList.size() > i && g_serversList[i].isOfficial)
+						crText = RGB(0, 0, 255);
+					else
+						crText = 0;
 
-				nmcd->clrText = crText;
-				return CDRF_DODEFAULT;
-			}
+					nmcd->clrText = crText;
+					return CDRF_DODEFAULT;
+				}
+				}
 			}
 		}
 		break;
 		case NM_CLICK:
 		{
 			LPNMITEMACTIVATE nmitem = (LPNMITEMACTIVATE)lParam;
-			size_t i = nmitem->iItem;
-			if (i != -1 && g_serversList.size() > i)
+			if (nmitem->hdr.hwndFrom == g_hWndListViewServers)
 			{
-				std::wstring wstr;
+				size_t i = nmitem->iItem;
+				if (i != -1 && g_serversList.size() > i)
+				{
+					std::wstring wstr;
 
-				ConvertCharset(g_serversList[i].info.serverName.c_str(), wstr);
-				SetDlgItemText(g_hWndGroupBox2, 1001, wstr.c_str()); // Server Name
+					ConvertCharset(g_serversList[i].info.serverName.c_str(), wstr);
+					SetDlgItemText(g_hWndGroupBox2, 1001, wstr.c_str()); // Server Name
 
-				wchar_t ipstr[22];
-				char *ip = (char *)&(g_serversList[i].address.ip);
-				swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], g_serversList[i].address.port);
-				SetDlgItemText(g_hWndGroupBox2, 1002, ipstr); // Server IP
+					wchar_t ipstr[22];
+					char *ip = (char *)&(g_serversList[i].address.ip);
+					swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], g_serversList[i].address.port);
+					SetDlgItemText(g_hWndGroupBox2, 1002, ipstr); // Server IP
 
-				wchar_t playersstr[12];
-				swprintf_s(playersstr, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
-				SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
+					wchar_t playersstr[12];
+					swprintf_s(playersstr, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
+					SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
 
-				wchar_t pingsstr[12];
-				uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
-				_itow_s(ping, pingsstr, 10);
-				SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
+					wchar_t pingsstr[12];
+					uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
+					_itow_s(ping, pingsstr, 10);
+					SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
 
-				ConvertCharset(g_serversList[i].info.gameMode.c_str(), wstr);
-				SetDlgItemText(g_hWndGroupBox2, 1005, wstr.c_str()); // Server Gamemode
+					ConvertCharset(g_serversList[i].info.gameMode.c_str(), wstr);
+					SetDlgItemText(g_hWndGroupBox2, 1005, wstr.c_str()); // Server Gamemode
 
-				SendQuery(g_serversList[i].address, 'i');
-				g_serversList[i].lastPing[0] = GetTickCount();
-			}
-			else
-			{
-				for (int i = 1001; i <= 1005; ++i)
-					SetDlgItemText(g_hWndGroupBox2, i, nullptr);
+					SendQuery(g_serversList[i].address, 'i');
+					SendQuery(g_serversList[i].address, 'c');
+					g_serversList[i].lastPing[0] = GetTickCount();
+				}
+				else
+				{
+					for (int i = 1001; i <= 1005; ++i)
+						SetDlgItemText(g_hWndGroupBox2, i, nullptr);
+				}
 			}
 		}
 		break;
@@ -533,7 +564,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetWindowPos(g_hWndListViewServers, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
 		SetWindowPos(g_hWndListViewHistory, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
 		SetWindowPos(g_hWndGroupBox1, 0, clientWidth - UI_PLAYERLIST_WIDTH, 0, UI_PLAYERLIST_WIDTH, clientHeight - UI_SERVERINFO_HEIGHT, SWP_NOZORDER);
-		SetWindowPos(g_hWndListViewPlayers, 0, 1, 12, UI_PLAYERLIST_WIDTH - 2, clientHeight - UI_SERVERINFO_HEIGHT - 12 - 2, SWP_NOZORDER);
+		SetWindowPos(g_hWndListViewPlayers, 0, clientWidth - UI_PLAYERLIST_WIDTH + 1, 12, UI_PLAYERLIST_WIDTH - 2, clientHeight - UI_SERVERINFO_HEIGHT - 12 - 2, SWP_NOZORDER);
 		SetWindowPos(g_hWndGroupBox2, 0, 0, clientHeight - UI_SERVERINFO_HEIGHT, clientWidth, 118, SWP_NOZORDER);
 		SendMessage(g_hWndStatusBar, WM_SIZE, 0, 0);
 	}
@@ -561,63 +592,94 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					if (*(int *)recvBuf == 0x3430504D) // MP04
 					{
-						uint32_t ip = recvAddr.sin_addr.s_addr;
-						uint16_t port = ntohs(recvAddr.sin_port);
+						char opcode = recvBuf[10];
+						if (opcode == 'i' || opcode == 'c')
+						{
+							uint32_t ip = recvAddr.sin_addr.s_addr;
+							uint16_t port = ntohs(recvAddr.sin_port);
 
-						bool found = false;
-						serverMasterListInfo masterInfo;
-						if (g_currentTab == 1 || g_currentTab == 2)
-						{
-							for (auto it = g_serversMasterList->begin(); it != g_serversMasterList->end(); ++it)
+							bool found = false;
+							serverMasterListInfo masterInfo;
+							if (g_currentTab == 1 || g_currentTab == 2)
 							{
-								if (it->address.ip == ip && it->address.port == port)
-								{
-									found = true;
-									masterInfo = *it;
-									break;
-								}
-							}
-						}
-						else if (g_currentTab == 3) // Lan
-						{
-							found = true;
-							masterInfo.address = { ip, port };
-							masterInfo.isOfficial = false;
-							masterInfo.lastPing = lanLastPing;
-						}
-
-						if (found)
-						{
-							serverInfo info;
-							if (GetServerInfo(recvBuf, recvLen, info))
-							{
-								bool inList = false;
-								for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
+								for (auto it = g_serversMasterList->begin(); it != g_serversMasterList->end(); ++it)
 								{
 									if (it->address.ip == ip && it->address.port == port)
 									{
-										inList = true;
-										it->lastRecv = GetTickCount();
-										it->lastPing[1] = it->lastPing[0];
-										it->info = info;
-										auto i = it - g_serversList.begin();
-										ListView_Update(g_hWndListViewServers, i);
+										found = true;
+										masterInfo = *it;
 										break;
 									}
 								}
-								if (!inList)
-								{
-									serverAllInfo allInfo;
-									allInfo.address = masterInfo.address;
-									allInfo.info = info;
-									allInfo.isOfficial = masterInfo.isOfficial;
-									allInfo.lastPing[0] = masterInfo.lastPing;
-									allInfo.lastPing[1] = masterInfo.lastPing;
-									allInfo.lastRecv = GetTickCount();
-									g_serversList.push_back(allInfo);
+							}
+							else if (g_currentTab == 3) // Lan
+							{
+								found = true;
+								masterInfo.address = { ip, port };
+								masterInfo.isOfficial = false;
+								masterInfo.lastPing = lanLastPing;
+							}
 
-									LVITEM lvi = { 0 };
-									ListView_InsertItem(g_hWndListViewServers, &lvi);
+							if (found)
+							{
+								switch (opcode)
+								{
+								case 'i':
+								{
+									serverInfo info;
+									if (GetServerInfo(recvBuf, recvLen, info))
+									{
+										bool inList = false;
+										for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
+										{
+											if (it->address.ip == ip && it->address.port == port)
+											{
+												inList = true;
+												it->lastRecv = GetTickCount();
+												it->lastPing[1] = it->lastPing[0];
+												it->info = info;
+												auto i = it - g_serversList.begin();
+												ListView_Update(g_hWndListViewServers, i);
+												break;
+											}
+										}
+										if (!inList)
+										{
+											serverAllInfo allInfo;
+											allInfo.address = masterInfo.address;
+											allInfo.info = info;
+											allInfo.isOfficial = masterInfo.isOfficial;
+											allInfo.lastPing[0] = masterInfo.lastPing;
+											allInfo.lastPing[1] = masterInfo.lastPing;
+											allInfo.lastRecv = GetTickCount();
+											g_serversList.push_back(allInfo);
+
+											LVITEM lvi = { 0 };
+											ListView_InsertItem(g_hWndListViewServers, &lvi);
+										}
+									}
+								}
+								break;
+								case 'c':
+								{
+									serverPlayers players;
+									if (GetServerPlayers(recvBuf, recvLen, players))
+									{
+										for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
+										{
+											if (it->address.ip == ip && it->address.port == port)
+											{
+												it->lastRecv = GetTickCount();
+												it->lastPing[1] = it->lastPing[0];
+												it->players = players;
+												auto i = it - g_serversList.begin();
+												ListView_SetItemCount(g_hWndListViewPlayers, players.size());
+												break;
+											}
+										}
+									}
+								}
+								break;
 								}
 							}
 						}
@@ -724,62 +786,89 @@ bool ParseJson(const char *json, serverMasterList &serversList)
 
 bool GetServerInfo(char *data, int length, serverInfo &serverInfo)
 {
-	char *_data = data + 10;
+	if (length < 11 + 12 + 1 + 2 + 2 + 4) // 12=Version name, 1=Password, 2=Players, 2=MaxPlayers, 4=strlen
+		return false;
 
-	char opcode = *_data;
-	_data += 1;
-	switch (opcode)
+	char *_data = data + 11;
+
+	memmove(serverInfo.versionName, _data, sizeof(serverInfo.versionName));
+	_data += sizeof(serverInfo.versionName);
+
+	serverInfo.isPassworded = *_data != false;
+	_data += sizeof(serverInfo.isPassworded);
+
+	serverInfo.players = *(uint16_t *)_data;
+	_data += sizeof(serverInfo.players);
+
+	serverInfo.maxPlayers = *(uint16_t *)_data;
+	_data += sizeof(serverInfo.maxPlayers);
+
+	int strLen = *(int *)_data;
+	_data += sizeof(strLen);
+	if (length < 11 + 12 + 1 + 2 + 2 + 4 + strLen + 4)
+		return false;
+
+	char *serverName = (char *)alloca(strLen + 1);
+	serverInfo.serverName.clear();
+	serverInfo.serverName.append(_data, strLen);
+	serverInfo.serverName.append(1, '\0');
+	_data += strLen;
+
+	strLen = *(int *)_data;
+	_data += sizeof(strLen);
+	if (length < (_data - data) + strLen + 4)
+		return false;
+
+	serverInfo.gameMode.clear();
+	serverInfo.gameMode.append(_data, strLen);
+	serverInfo.gameMode.append(1, '\0');
+	_data += strLen;
+
+	strLen = *(int *)_data;
+	_data += sizeof(strLen);
+	if (length < (_data - data) + strLen)
+		return false;
+
+	serverInfo.mapName.clear();
+	serverInfo.mapName.append(_data, strLen);
+	serverInfo.mapName.append(1, '\0');
+
+	return true;
+}
+
+bool GetServerPlayers(char *data, int length, serverPlayers &serverPlayers)
+{
+	serverPlayers.clear();
+
+	if (length < 11 + 2)
+		return false;
+
+	char *_data = data + 11;
+
+	uint16_t players = *(uint16_t *)_data;
+	_data += sizeof(players);
+
+	if (players != 0)
 	{
-	case 'i':
-	{
-		if (length < 11 + 12 + 1 + 2 + 2 + 4) // 12=Version name, 1=Password, 2=Players, 2=MaxPlayers, 4=strlen
-			return false;
+		serverPlayers.reserve(players);
 
-		memmove(serverInfo.versionName, _data, sizeof(serverInfo.versionName));
-		_data += 12;
+		for (uint16_t i = 0; i < players; ++i)
+		{
+			if (length < (_data - data) + 1)
+				return false;
 
-		serverInfo.isPassworded = *_data != false;
-		_data += 1;
+			uint8_t strLen = *_data;
+			_data += sizeof(strLen);
 
-		serverInfo.players = *(uint16_t *)_data;
-		_data += 2;
+			if (length < (_data - data) + strLen)
+				return false;
 
-		serverInfo.maxPlayers = *(uint16_t *)_data;
-		_data += 2;
+			playerName playerName = {};
+			strncpy(playerName.name, _data, strLen > 24 ? 24 : strLen);
+			_data += strLen;
 
-		int strLen = *(int *)_data;
-		_data += 4;
-		if (length < 11 + 12 + 1 + 2 + 2 + 4 + strLen + 4)
-			return false;
-
-		char *serverName = (char *)alloca(strLen + 1);
-		serverInfo.serverName.clear();
-		serverInfo.serverName.append(_data, strLen);
-		serverInfo.serverName.append(1, '\0');
-		_data += strLen;
-
-		strLen = *(int *)_data;
-		_data += 4;
-		if (length < (_data - data) + strLen + 4)
-			return false;
-
-		serverInfo.gameMode.clear();
-		serverInfo.gameMode.append(_data, strLen);
-		serverInfo.gameMode.append(1, '\0');
-		_data += strLen;
-
-		strLen = *(int *)_data;
-		_data += 4;
-		if (length < (_data - data) + strLen)
-			return false;
-
-		serverInfo.mapName.clear();
-		serverInfo.mapName.append(_data, strLen);
-		serverInfo.mapName.append(1, '\0');
-	}
-	break;
-	case 'c':
-		break;
+			serverPlayers.push_back(playerName);
+		}
 	}
 	return true;
 }
@@ -918,7 +1007,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 			return (INT_PTR)TRUE;
 		case WM_PROGRESS:
 			SendDlgItemMessage(hDlg, IDC_PROGRESS1, PBM_SETPOS, wParam, 0);
-			wchar_t *unit = L"B/s";
+			const wchar_t *unit = L"B/s";
 			float speed = (float)lParam;
 			if (speed > 1024)
 			{

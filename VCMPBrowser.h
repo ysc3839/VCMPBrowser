@@ -4,7 +4,7 @@
 #include <utility>
 #include <string>
 #include <thread>
-#include <atomic>
+#include <array>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -48,10 +48,17 @@ struct serverInfo
 	std::string mapName;
 };
 
+struct playerName
+{
+	char name[25];
+};
+typedef std::vector<playerName> serverPlayers;
+
 struct serverAllInfo
 {
 	serverAddress address;
 	serverInfo info;
+	serverPlayers players;
 	bool isOfficial;
 	uint32_t lastPing[2];
 	uint32_t lastRecv;
