@@ -358,7 +358,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					std::string data;
 					data.reserve(2048);
-					if (CurlRequset(g_currentTab == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4") == CURLE_OK)
+
+					CURLcode curlRet = CurlRequset(g_currentTab == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4");
+					if (curlRet == CURLE_OK)
 					{
 						serverMasterList serversList;
 						if (ParseJson(data.data(), serversList))
@@ -377,7 +379,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						MessageBox(hWnd, LoadStr(L"Can't get information from master list.", IDS_MASTERLISTFAILED), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
+						wchar_t message[512];
+						std::wstring strerror;
+						ConvertCharset(curl_easy_strerror(curlRet), strerror);
+						swprintf_s(message, LoadStr(L"Can't get information from master list.\n%s", IDS_MASTERLISTFAILED), strerror.c_str());
+						MessageBox(hWnd, message, LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 					}
 
 					DestroyWindow(hDialog);
