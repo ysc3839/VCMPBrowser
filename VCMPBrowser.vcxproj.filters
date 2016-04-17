@@ -24,6 +24,18 @@
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="MasterListUtil.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="i18n.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerQueryUtil.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DownloadUtil.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VCMPBrowser.cpp">

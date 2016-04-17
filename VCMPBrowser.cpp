@@ -1,4 +1,6 @@
 #include "VCMPBrowser.h"
+#include "MasterListUtil.h"
+#include "ServerQueryUtil.h"
 
 HINSTANCE g_hInst;
 HWND g_hMainWnd;
@@ -9,24 +11,18 @@ HWND g_hWndGroupBox1;
 HWND g_hWndListViewPlayers;
 HWND g_hWndGroupBox2;
 HWND g_hWndStatusBar;
+#include "i18n.h"
+#include "DownloadUtil.h"
+
 serverMasterList *g_serversMasterList = nullptr;
-SOCKET g_UDPSocket;
-int g_currentTab = 0;// 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
+int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
 serverList g_serversList;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent);
-bool ParseJson(const char *json, serverMasterList &serversList);
-bool GetServerInfo(char *data, int length, serverInfo &serverInfo);
-bool GetServerPlayers(char *data, int length, serverPlayers &serverPlayers);
-bool ConvertCharset(const char *from, std::wstring &to);
-void SendQuery(serverAddress address, char opcode);
 void DownloadVCMPGame(const char *version, const char *password = "");
-
-inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -340,8 +336,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case 1: // Internet
 			case 2: // Official
 			case 3: // Lan
-				g_serversList.clear();
 				ListView_DeleteAllItems(g_hWndListViewServers);
+				ListView_DeleteAllItems(g_hWndListViewPlayers);
+				g_serversList.clear();
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
 				ShowWindow(g_hWndListViewHistory, SW_HIDE);
 				UpdateWindow(g_hWndListViewServers);
@@ -520,6 +517,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				size_t i = nmitem->iItem;
 				if (i != -1 && g_serversList.size() > i)
 				{
+					if (g_serversList[i].info.players == 0)
+						ListView_DeleteAllItems(g_hWndListViewPlayers);
+
 					std::wstring wstr;
 
 					ConvertCharset(g_serversList[i].info.serverName.c_str(), wstr);
@@ -548,6 +548,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				else
 				{
+					ListView_DeleteAllItems(g_hWndListViewPlayers);
 					for (int i = 1001; i <= 1005; ++i)
 						SetDlgItemText(g_hWndGroupBox2, i, nullptr);
 				}
@@ -718,312 +719,4 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return (INT_PTR)FALSE;
-}
-
-CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent)
-{
-	CURLcode res = CURLE_FAILED_INIT;
-	CURL *curl = curl_easy_init();
-	if (curl)
-	{
-		curl_easy_setopt(curl, CURLOPT_URL, URL);
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, (curl_write_callback)[](char *buffer, size_t size, size_t nitems, void *outstream) {
-			if (outstream)
-			{
-				size_t realsize = size * nitems;
-				((std::string *)outstream)->append(buffer, realsize);
-				return realsize;
-			}
-			return (size_t)0;
-		});
-
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-	}
-	return res;
-}
-
-bool ParseJson(const char *json, serverMasterList &serversList)
-{
-	do {
-		rapidjson::Document dom;
-		if (dom.Parse(json).HasParseError() || !dom.IsObject())
-			break;
-
-		auto success = dom.FindMember("success");
-		if (success == dom.MemberEnd() || !success->value.IsBool() || !success->value.GetBool())
-			break;
-
-		auto servers = dom.FindMember("servers");
-		if (servers == dom.MemberEnd() || !servers->value.IsArray())
-			break;
-
-		for (auto it = servers->value.Begin(); it != servers->value.End(); ++it)
-		{
-			if (it->IsObject())
-			{
-				auto ip = it->FindMember("ip");
-				auto port = it->FindMember("port");
-				auto isOfficial = it->FindMember("is_official");
-				if (ip != it->MemberEnd() && port != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && isOfficial->value.IsBool())
-				{
-					serverMasterListInfo server;
-					server.address.ip = inet_addr(ip->value.GetString());
-					server.address.port = (uint16_t)port->value.GetUint();
-					server.isOfficial = isOfficial->value.GetBool();
-					serversList.push_back(server);
-				}
-			}
-		}
-		return true;
-	} while (0);
-	return false;
-}
-
-bool GetServerInfo(char *data, int length, serverInfo &serverInfo)
-{
-	if (length < 11 + 12 + 1 + 2 + 2 + 4) // 12=Version name, 1=Password, 2=Players, 2=MaxPlayers, 4=strlen
-		return false;
-
-	char *_data = data + 11;
-
-	memmove(serverInfo.versionName, _data, sizeof(serverInfo.versionName));
-	_data += sizeof(serverInfo.versionName);
-
-	serverInfo.isPassworded = *_data != false;
-	_data += sizeof(serverInfo.isPassworded);
-
-	serverInfo.players = *(uint16_t *)_data;
-	_data += sizeof(serverInfo.players);
-
-	serverInfo.maxPlayers = *(uint16_t *)_data;
-	_data += sizeof(serverInfo.maxPlayers);
-
-	int strLen = *(int *)_data;
-	_data += sizeof(strLen);
-	if (length < 11 + 12 + 1 + 2 + 2 + 4 + strLen + 4)
-		return false;
-
-	char *serverName = (char *)alloca(strLen + 1);
-	serverInfo.serverName.clear();
-	serverInfo.serverName.append(_data, strLen);
-	serverInfo.serverName.append(1, '\0');
-	_data += strLen;
-
-	strLen = *(int *)_data;
-	_data += sizeof(strLen);
-	if (length < (_data - data) + strLen + 4)
-		return false;
-
-	serverInfo.gameMode.clear();
-	serverInfo.gameMode.append(_data, strLen);
-	serverInfo.gameMode.append(1, '\0');
-	_data += strLen;
-
-	strLen = *(int *)_data;
-	_data += sizeof(strLen);
-	if (length < (_data - data) + strLen)
-		return false;
-
-	serverInfo.mapName.clear();
-	serverInfo.mapName.append(_data, strLen);
-	serverInfo.mapName.append(1, '\0');
-
-	return true;
-}
-
-bool GetServerPlayers(char *data, int length, serverPlayers &serverPlayers)
-{
-	serverPlayers.clear();
-
-	if (length < 11 + 2)
-		return false;
-
-	char *_data = data + 11;
-
-	uint16_t players = *(uint16_t *)_data;
-	_data += sizeof(players);
-
-	if (players != 0)
-	{
-		serverPlayers.reserve(players);
-
-		for (uint16_t i = 0; i < players; ++i)
-		{
-			if (length < (_data - data) + 1)
-				return false;
-
-			uint8_t strLen = *_data;
-			_data += sizeof(strLen);
-
-			if (length < (_data - data) + strLen)
-				return false;
-
-			playerName playerName = {};
-			strncpy(playerName.name, _data, strLen > 24 ? 24 : strLen);
-			_data += strLen;
-
-			serverPlayers.push_back(playerName);
-		}
-	}
-	return true;
-}
-
-bool ConvertCharset(const char *from, std::wstring &to)
-{
-	size_t size = MultiByteToWideChar(CP_ACP, 0, from, -1, nullptr, 0);
-
-	if (size == 0)
-		return false;
-
-	wchar_t *buffer = new wchar_t[size];
-	if (!buffer)
-		return false;
-
-	if (MultiByteToWideChar(CP_ACP, 0, from, -1, buffer, size) == 0)
-		return false;
-
-	to.clear();
-	to.append(buffer, size);
-
-	delete[] buffer;
-	return true;
-}
-
-void SendQuery(serverAddress address, char opcode)
-{
-	struct sockaddr_in sendaddr = { AF_INET };
-	sendaddr.sin_addr.s_addr = address.ip;
-	sendaddr.sin_port = htons(address.port);
-
-	char *cip = (char *)&(address.ip);
-	char *cport = (char *)&(address.port);
-	char buffer[] = { 'V', 'C', 'M', 'P', cip[0], cip[1], cip[2], cip[3], cport[0], cport[1], opcode };
-
-	sendto(g_UDPSocket, buffer, sizeof(buffer), 0, (sockaddr *)&sendaddr, sizeof(sendaddr));
-}
-
-void DownloadVCMPGame(const char *version, const char *password)
-{
-	rapidjson::StringBuffer json;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(json);
-
-	writer.StartObject();
-	writer.Key("password");
-	writer.String(password);
-	writer.Key("version");
-	writer.String(version);
-	writer.EndObject();
-
-	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_DOWNLOAD), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
-		static long running = false;
-		switch (message)
-		{
-		case WM_INITDIALOG:
-		{
-			char *json = (char *)lParam;
-			std::thread thread([](HWND hWnd, char *json) {
-				CURL *curl = curl_easy_init();
-				if (curl)
-				{
-					curl_easy_setopt(curl, CURLOPT_URL, "http://u04.maxorator.com/download");
-
-					char fileName[16];
-					srand(GetTickCount());
-					snprintf(fileName, 16, "tmp%.4X.7z", rand());
-					FILE *file = fopen(fileName, "wb");
-					if (file == nullptr)
-					{
-						curl_easy_cleanup(curl);
-						return 0;
-					}
-					curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
-
-					curl_easy_setopt(curl, CURLOPT_NOPROGRESS, false);
-					struct progInfo {
-						HWND hWnd;
-						uint32_t time;
-						curl_off_t size;
-					};
-					progInfo progress = { hWnd, GetTickCount(), 0 };
-					curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress);
-					curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, (curl_xferinfo_callback)[](void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) -> int {
-						if (!_InterlockedCompareExchange(&running, 0, 0)) // Cancel
-							return 1;
-						if (dltotal != 0 && ultotal != 0)
-						{
-							progInfo *info = (progInfo *)p;
-							uint32_t now = GetTickCount(), span_ms = now - info->time;
-							if (span_ms >= 500) // Update every 0.5s
-							{
-								info->time = now;
-								curl_off_t dlsize = dlnow > ulnow ? dlnow : ulnow;
-								curl_off_t current_speed = (dlsize - info->size) / span_ms * CURL_OFF_T_C(1000);
-								info->size = dlsize;
-
-								PostMessage(info->hWnd, WM_PROGRESS, (long)(dlnow * CURL_OFF_T_C(100) / dltotal), (long)(current_speed));
-							}
-						}
-						return 0;
-					});
-
-					struct curl_httppost* post = NULL;
-					struct curl_httppost* last = NULL;
-					curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json, CURLFORM_END);
-					curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
-
-					running = true;
-					CURLcode ret = curl_easy_perform(curl);
-					running = false;
-
-					fclose(file);
-
-					if (ret == CURLE_ABORTED_BY_CALLBACK) // User cancel
-					{
-						remove(fileName);
-					}
-
-					curl_easy_cleanup(curl);
-				}
-				PostMessage(hWnd, WM_CLOSE, 0, 0);
-				return 0;
-			}, hDlg, json);
-			thread.detach();
-		}
-		return (INT_PTR)TRUE;
-		case WM_COMMAND:
-			if (LOWORD(wParam) == IDCANCEL)
-			{
-				EndDialog(hDlg, LOWORD(wParam));
-				return (INT_PTR)TRUE;
-			}
-			break;
-		case WM_DESTROY:
-			running = false;
-			return (INT_PTR)TRUE;
-		case WM_PROGRESS:
-			SendDlgItemMessage(hDlg, IDC_PROGRESS1, PBM_SETPOS, wParam, 0);
-			const wchar_t *unit = L"B/s";
-			float speed = (float)lParam;
-			if (speed > 1024)
-			{
-				speed = speed / 1024; // KB
-				unit = L"KB/s";
-				if (speed > 1024)
-				{
-					speed = speed / 1024; // MB
-					unit = L"MB/s";
-				}
-			}
-			wchar_t speedText[32];
-			swprintf_s(speedText, L"%.1f %s", speed, unit);
-			SetDlgItemText(hDlg, IDC_STATIC1, speedText);
-			break;
-		}
-		return (INT_PTR)FALSE;
-	}, (LPARAM)json.GetString());
 }

@@ -91,7 +91,11 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DownloadUtil.h" />
+    <ClInclude Include="i18n.h" />
+    <ClInclude Include="MasterListUtil.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="ServerQueryUtil.h" />
     <ClInclude Include="VCMPBrowser.h" />
   </ItemGroup>
   <ItemGroup>
