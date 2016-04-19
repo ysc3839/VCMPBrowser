@@ -23,6 +23,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void DownloadVCMPGame(const char *version, const char *password = "");
+int DoPropertySheet(HWND hwndOwner);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -313,7 +314,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDM_ABOUT:
-			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			DoPropertySheet(hWnd);
+			//DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -719,4 +721,78 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return (INT_PTR)FALSE;
+}
+
+int DoPropertySheet(HWND hwndOwner)
+{
+	int settings = 0;
+	auto callback = [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR
+	{
+		static int *settings = nullptr;
+		switch (message)
+		{
+		case WM_INITDIALOG: // lParam = PROPSHEETPAGE
+			settings = (int *)((PROPSHEETPAGE *)lParam)->lParam;
+			//EnableThemeDialogTexture(hDlg, ETDT_ENABLETAB);
+			return (INT_PTR)TRUE;
+		case WM_COMMAND:
+			PropSheet_Changed(GetParent(hDlg), hDlg);
+			break;
+		case PSM_QUERYSIBLINGS:
+			MessageBox(hDlg, (LPCWSTR)wParam, (LPCWSTR)lParam, 0);
+			break;
+		case WM_DESTROY:
+			if (settings)
+				*settings = 12345;
+			settings = nullptr;
+			break;
+		}
+		return (INT_PTR)FALSE;
+	};
+
+	PROPSHEETPAGE psp[2];
+	psp[0].dwSize = sizeof(PROPSHEETPAGE);
+	psp[0].dwFlags = PSP_USEICONID | PSP_USETITLE;
+	psp[0].hInstance = g_hInst;
+	psp[0].pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
+	psp[0].pszIcon = nullptr;
+	psp[0].pfnDlgProc = callback;
+	psp[0].pszTitle = L"Test1";
+	psp[0].lParam = (LPARAM)&settings;
+	psp[0].pfnCallback = NULL;
+
+	psp[1].dwSize = sizeof(PROPSHEETPAGE);
+	psp[1].dwFlags = PSP_USEICONID | PSP_USETITLE;
+	psp[1].hInstance = g_hInst;
+	psp[1].pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
+	psp[1].pszIcon = nullptr;
+	psp[1].pfnDlgProc = callback;
+	psp[1].pszTitle = L"Test2";
+	psp[1].lParam = (LPARAM)&settings;
+	psp[1].pfnCallback = NULL;
+
+	PROPSHEETHEADER psh;
+	psh.dwSize = sizeof(PROPSHEETHEADER);
+	psh.dwFlags = PSH_USEICONID | PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP | PSH_USECALLBACK;
+	psh.hwndParent = hwndOwner;
+	psh.hInstance = g_hInst;
+	psh.pszIcon = MAKEINTRESOURCE(IDI_VCMPBROWSER);
+	psh.pszCaption = L"Test Settings";
+	psh.nPages = sizeof(psp) / sizeof(PROPSHEETPAGE);
+	psh.nStartPage = 0;
+	psh.ppsp = psp;
+	psh.pfnCallback = [](HWND hWndDlg, UINT uMsg, LPARAM lParam) -> int {
+		switch (uMsg)
+		{
+		case PSCB_BUTTONPRESSED:
+			if (lParam == PSBTN_APPLYNOW || lParam == PSBTN_OK)
+				PropSheet_QuerySiblings(hWndDlg, (WPARAM)L"Save", (LPARAM)L"PSCB_BUTTONPRESSED");
+			break;
+		default:
+			break;
+		}
+		return 0;
+	};
+
+	return PropertySheet(&psh);;
 }
