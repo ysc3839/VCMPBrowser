@@ -12,7 +12,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 	writer.String(version);
 	writer.EndObject();
 
-	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_DOWNLOAD), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
+	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
 		static long running = false;
 		switch (message)
 		{
@@ -99,7 +99,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 			running = false;
 			return (INT_PTR)TRUE;
 		case WM_PROGRESS:
-			SendDlgItemMessage(hDlg, IDC_PROGRESS1, PBM_SETPOS, wParam, 0);
+			SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETPOS, wParam, 0);
 			const wchar_t *unit = L"B/s";
 			float speed = (float)lParam;
 			if (speed > 1024)
@@ -114,7 +114,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 			}
 			wchar_t speedText[32];
 			swprintf_s(speedText, L"%.1f %s", speed, unit);
-			SetDlgItemText(hDlg, IDC_STATIC1, speedText);
+			SetDlgItemText(hDlg, IDC_TIPSTATIC, speedText);
 			break;
 		}
 		return (INT_PTR)FALSE;

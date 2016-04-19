@@ -33,7 +33,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	SetThreadUILanguage(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
+	SetThreadLocale(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
+	SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
 
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
@@ -246,7 +247,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int y = 18;
 #define LINE_GAP 20
 
-			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME1), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, y, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME_), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, 10, y, 100, 16, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
 			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, 112, y, 300, 16, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
@@ -754,25 +755,35 @@ int DoPropertySheet(HWND hwndOwner)
 	psp[0].dwSize = sizeof(PROPSHEETPAGE);
 	psp[0].dwFlags = PSP_USEICONID | PSP_USETITLE;
 	psp[0].hInstance = g_hInst;
-	psp[0].pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
+	psp[0].pszTemplate = MAKEINTRESOURCE(IDD_SET_GAME);
 	psp[0].pszIcon = nullptr;
 	psp[0].pfnDlgProc = callback;
-	psp[0].pszTitle = L"Test1";
+	psp[0].pszTitle = LoadStr(L"Game", IDS_SET_GAME);
 	psp[0].lParam = (LPARAM)&settings;
 	psp[0].pfnCallback = NULL;
 
 	psp[1].dwSize = sizeof(PROPSHEETPAGE);
 	psp[1].dwFlags = PSP_USEICONID | PSP_USETITLE;
 	psp[1].hInstance = g_hInst;
-	psp[1].pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
+	psp[1].pszTemplate = MAKEINTRESOURCE(IDD_SET_UPDATE);
 	psp[1].pszIcon = nullptr;
 	psp[1].pfnDlgProc = callback;
-	psp[1].pszTitle = L"Test2";
+	psp[1].pszTitle = LoadStr(L"Update", IDS_SET_UPDATE);
 	psp[1].lParam = (LPARAM)&settings;
 	psp[1].pfnCallback = NULL;
 
+	/*psp[2].dwSize = sizeof(PROPSHEETPAGE);
+	psp[2].dwFlags = PSP_USEICONID | PSP_USETITLE;
+	psp[2].hInstance = g_hInst;
+	psp[2].pszTemplate = MAKEINTRESOURCE(IDD_SET_GAME);
+	psp[2].pszIcon = nullptr;
+	psp[2].pfnDlgProc = callback;
+	psp[2].pszTitle = LoadStr(L"Localization", IDS_SET_LOCALE);
+	psp[2].lParam = (LPARAM)&settings;
+	psp[2].pfnCallback = NULL;*/
+
 	PROPSHEETHEADER psh;
-	psh.dwSize = sizeof(PROPSHEETHEADER);
+	psh.dwSize = PROPSHEETHEADER_V2_SIZE;
 	psh.dwFlags = PSH_USEICONID | PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP | PSH_USECALLBACK;
 	psh.hwndParent = hwndOwner;
 	psh.hInstance = g_hInst;
