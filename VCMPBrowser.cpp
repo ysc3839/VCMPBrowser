@@ -14,6 +14,7 @@ HWND g_hWndStatusBar;
 #include "i18n.h"
 #include "DownloadUtil.h"
 
+settings g_browserSettings;
 serverMasterList *g_serversMasterList = nullptr;
 int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
 serverList g_serversList;
@@ -23,7 +24,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void DownloadVCMPGame(const char *version, const char *password = "");
-int DoPropertySheet(HWND hwndOwner);
+int ShowSettings(HWND hwndOwner);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -315,7 +316,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDM_ABOUT:
-			DoPropertySheet(hWnd);
+			ShowSettings(hWnd);
 			//DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case IDM_EXIT:
@@ -724,71 +725,104 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-int DoPropertySheet(HWND hwndOwner)
+std::string GetText(HWND hWnd)
 {
-	int settings = 0;
-	auto callback = [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR
+	size_t len = GetWindowTextLengthA(hWnd) + 1;
+	if (len != 0)
 	{
-		static int *settings = nullptr;
+		char *text = (char *)alloca(len);
+		len = GetWindowTextA(hWnd, text, len);
+		return std::string(text, len);
+	}
+	return std::string();
+}
+
+int ShowSettings(HWND hwndOwner)
+{
+	PROPSHEETPAGE psp[2];
+	psp[0].dwSize = sizeof(PROPSHEETPAGE);
+	psp[0].dwFlags = PSP_USETITLE;
+	psp[0].hInstance = g_hInst;
+	psp[0].pszTemplate = MAKEINTRESOURCE(IDD_SET_GAME);
+	psp[0].pszTitle = LoadStr(L"Game", IDS_SET_GAME);
+	psp[0].pfnDlgProc = [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR
+	{
 		switch (message)
 		{
-		case WM_INITDIALOG: // lParam = PROPSHEETPAGE
-			settings = (int *)((PROPSHEETPAGE *)lParam)->lParam;
-			//EnableThemeDialogTexture(hDlg, ETDT_ENABLETAB);
+		case WM_INITDIALOG:
+		{
+			HWND hWnd = GetDlgItem(hDlg, IDC_EDIT_PLAYERNAME);
+			Edit_LimitText(hWnd, 23);
+			SetWindowTextA(hWnd, g_browserSettings.playerName);
+
+			hWnd = GetDlgItem(hDlg, IDC_EDIT_GTAPATH);
+			Edit_LimitText(hWnd, 260);
+			SetWindowText(hWnd, g_browserSettings.gamePath);
 			return (INT_PTR)TRUE;
+		}
 		case WM_COMMAND:
-			PropSheet_Changed(GetParent(hDlg), hDlg);
+			if (HIWORD(wParam) == EN_CHANGE)
+				PropSheet_Changed(GetParent(hDlg), hDlg);
 			break;
-		case PSM_QUERYSIBLINGS:
-			MessageBox(hDlg, (LPCWSTR)wParam, (LPCWSTR)lParam, 0);
-			break;
-		case WM_DESTROY:
-			if (settings)
-				*settings = 12345;
-			settings = nullptr;
+		case PSM_QUERYSIBLINGS: // Save settings
+			GetDlgItemTextA(hDlg, IDC_EDIT_PLAYERNAME, g_browserSettings.playerName, 24);
+			GetDlgItemText(hDlg, IDC_EDIT_GTAPATH, g_browserSettings.gamePath, 260);
 			break;
 		}
 		return (INT_PTR)FALSE;
 	};
 
-	PROPSHEETPAGE psp[2];
-	psp[0].dwSize = sizeof(PROPSHEETPAGE);
-	psp[0].dwFlags = PSP_USEICONID | PSP_USETITLE;
-	psp[0].hInstance = g_hInst;
-	psp[0].pszTemplate = MAKEINTRESOURCE(IDD_SET_GAME);
-	psp[0].pszIcon = nullptr;
-	psp[0].pfnDlgProc = callback;
-	psp[0].pszTitle = LoadStr(L"Game", IDS_SET_GAME);
-	psp[0].lParam = (LPARAM)&settings;
-	psp[0].pfnCallback = NULL;
-
 	psp[1].dwSize = sizeof(PROPSHEETPAGE);
-	psp[1].dwFlags = PSP_USEICONID | PSP_USETITLE;
+	psp[1].dwFlags = PSP_USETITLE;
 	psp[1].hInstance = g_hInst;
 	psp[1].pszTemplate = MAKEINTRESOURCE(IDD_SET_UPDATE);
-	psp[1].pszIcon = nullptr;
-	psp[1].pfnDlgProc = callback;
 	psp[1].pszTitle = LoadStr(L"Update", IDS_SET_UPDATE);
-	psp[1].lParam = (LPARAM)&settings;
-	psp[1].pfnCallback = NULL;
+	psp[1].pfnDlgProc = [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR
+	{
+		switch (message)
+		{
+		case WM_INITDIALOG:
+		{
+			HWND hComboBox = GetDlgItem(hDlg, IDC_COM_FREQ);
+			ComboBox_AddString(hComboBox, LoadStr(L"Every start", IDS_EVERY_START));
+			ComboBox_AddString(hComboBox, LoadStr(L"Every day", IDS_EVERY_DAY));
+			ComboBox_AddString(hComboBox, LoadStr(L"Every two days", IDS_EVERY_2DAY));
+			ComboBox_AddString(hComboBox, LoadStr(L"Every week", IDS_EVERY_WEEK));
+			ComboBox_AddString(hComboBox, LoadStr(L"Never", IDS_NEVER));
+			ComboBox_SetCurSel(hComboBox, g_browserSettings.gameUpdateFreq);
+
+			SetWindowTextA(GetDlgItem(hDlg, IDC_EDIT_UPD_URL), g_browserSettings.gameUpdateURL.c_str());
+			SetWindowTextA(GetDlgItem(hDlg, IDC_EDIT_UPD_PASS), g_browserSettings.gameUpdatePassword.c_str());
+			SetWindowTextA(GetDlgItem(hDlg, IDC_EDIT_MASTER_URL), g_browserSettings.masterlistURL.c_str());
+			return (INT_PTR)TRUE;
+		}
+		case WM_COMMAND:
+			if (HIWORD(wParam) == EN_CHANGE || HIWORD(wParam) == CBN_SELCHANGE)
+				PropSheet_Changed(GetParent(hDlg), hDlg);
+			break;
+		case PSM_QUERYSIBLINGS: // Save settings
+			g_browserSettings.gameUpdateFreq = (updateFreq)ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_FREQ));
+			g_browserSettings.gameUpdateURL = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_URL));
+			g_browserSettings.gameUpdatePassword = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_PASS));
+			g_browserSettings.masterlistURL = GetText(GetDlgItem(hDlg, IDC_EDIT_MASTER_URL));
+			break;
+		}
+		return (INT_PTR)FALSE;
+	};
 
 	/*psp[2].dwSize = sizeof(PROPSHEETPAGE);
-	psp[2].dwFlags = PSP_USEICONID | PSP_USETITLE;
+	psp[2].dwFlags = PSP_USETITLE;
 	psp[2].hInstance = g_hInst;
-	psp[2].pszTemplate = MAKEINTRESOURCE(IDD_SET_GAME);
-	psp[2].pszIcon = nullptr;
-	psp[2].pfnDlgProc = callback;
-	psp[2].pszTitle = LoadStr(L"Localization", IDS_SET_LOCALE);
-	psp[2].lParam = (LPARAM)&settings;
-	psp[2].pfnCallback = NULL;*/
+	psp[2].pszTemplate = MAKEINTRESOURCE(IDD_SET_UPDATE);
+	psp[2].pszTitle = LoadStr(L"Update", IDS_SET_UPDATE);
+	psp[2].pfnDlgProc = */
 
 	PROPSHEETHEADER psh;
-	psh.dwSize = PROPSHEETHEADER_V2_SIZE;
-	psh.dwFlags = PSH_USEICONID | PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP | PSH_USECALLBACK;
+	psh.dwSize = sizeof(PROPSHEETHEADER);
+	psh.dwFlags = PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP | PSH_USECALLBACK;
 	psh.hwndParent = hwndOwner;
 	psh.hInstance = g_hInst;
-	psh.pszIcon = MAKEINTRESOURCE(IDI_VCMPBROWSER);
-	psh.pszCaption = L"Test Settings";
+	psh.pszCaption = LoadStr(L"Settings", IDS_SETTINGS);
 	psh.nPages = sizeof(psp) / sizeof(PROPSHEETPAGE);
 	psh.nStartPage = 0;
 	psh.ppsp = psp;
@@ -797,13 +831,11 @@ int DoPropertySheet(HWND hwndOwner)
 		{
 		case PSCB_BUTTONPRESSED:
 			if (lParam == PSBTN_APPLYNOW || lParam == PSBTN_OK)
-				PropSheet_QuerySiblings(hWndDlg, (WPARAM)L"Save", (LPARAM)L"PSCB_BUTTONPRESSED");
-			break;
-		default:
+				PropSheet_QuerySiblings(hWndDlg, 0, 0);
 			break;
 		}
 		return 0;
 	};
 
-	return PropertySheet(&psh);;
+	return PropertySheet(&psh);
 }

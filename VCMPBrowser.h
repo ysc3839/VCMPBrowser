@@ -1,4 +1,8 @@
 #pragma once
+#include <WinSDKVer.h>
+#define _WIN32_WINNT 0x0501 // XP
+#include <SDKDDKVer.h>
+
 #define _CRT_SECURE_NO_WARNINGS
 #include <vector>
 #include <utility>
@@ -66,6 +70,25 @@ struct serverAllInfo
 
 typedef std::vector<serverMasterListInfo> serverMasterList;
 typedef std::vector<serverAllInfo> serverList;
+
+enum updateFreq
+{
+	START = 0,
+	DAY,
+	TWODAY,
+	WEEK,
+	NEVER
+};
+
+struct settings
+{
+	char playerName[24];
+	wchar_t gamePath[MAX_PATH];
+	updateFreq gameUpdateFreq; // In minute
+	std::string gameUpdateURL;
+	std::string gameUpdatePassword;
+	std::string masterlistURL;
+};
 
 #define WM_SOCKET WM_USER+1
 #define WM_PROGRESS WM_USER+1 // wParam=progress, lParam=speed
