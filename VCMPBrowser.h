@@ -17,6 +17,7 @@
 #include <WindowsX.h>
 #include <Uxtheme.h>
 #include <Winsock2.h>
+#include <Commdlg.h>
 
 #define RAPIDJSON_HAS_STDSTRING 1
 #include "rapidjson/document.h"

@@ -34,8 +34,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	SetThreadLocale(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
-	SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+	//SetThreadLocale(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
+	//SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+	//InitMUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
 
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
@@ -77,7 +78,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hInstance = hInstance;
 	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_VCMPBROWSER));
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_3DSHADOW);
 	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_VCMPBROWSER);
 	wcex.lpszClassName = L"VCMPBrowser";
 	wcex.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -761,6 +762,32 @@ int ShowSettings(HWND hwndOwner)
 			return (INT_PTR)TRUE;
 		}
 		case WM_COMMAND:
+			if (HIWORD(wParam) == BN_CLICKED)
+			{
+				switch (LOWORD(wParam))
+				{
+				case IDC_BTN_BROWSE:
+				{
+					OPENFILENAME ofn = {};
+					wchar_t gamePath[MAX_PATH];
+
+					ofn.lStructSize = sizeof(ofn);
+					ofn.hwndOwner = hDlg;
+					ofn.lpstrFile = gamePath;
+					ofn.lpstrFile[0] = L'\0';
+					ofn.nMaxFile = sizeof(gamePath);
+					ofn.lpstrFilter = L"gta-vc.exe\0gta-vc.exe\0";
+					ofn.nFilterIndex = 1;
+					ofn.lpstrTitle = L"Test";
+					ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+
+					GetOpenFileName(&ofn);
+
+				}
+				break;
+				}
+			}
+
 			if (HIWORD(wParam) == EN_CHANGE)
 				PropSheet_Changed(GetParent(hDlg), hDlg);
 			break;
