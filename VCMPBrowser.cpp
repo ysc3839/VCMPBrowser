@@ -34,9 +34,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	//SetThreadLocale(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
-	//SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
-	//InitMUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+	SetThreadLocale(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
+	SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+	InitMUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
 
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
@@ -104,12 +104,22 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static uint32_t lanLastPing = 0;
-
+	static HFONT _hFont = 0;
 	switch (message)
 	{
 	case WM_CREATE:
 	{
-		HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+		HFONT hFont = 0;
+
+		NONCLIENTMETRICS ncm = { sizeof(ncm) };
+		if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0))
+		{
+			hFont = CreateFontIndirect(&ncm.lfMessageFont);
+			_hFont = hFont;
+		}
+		if (!hFont)
+			hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+
 		RECT rcClient;
 		GetClientRect(hWnd, &rcClient);
 
@@ -579,6 +589,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		((LPMINMAXINFO)lParam)->ptMinTrackSize = { 750, 500 };
 		break;
 	case WM_DESTROY:
+		if (_hFont)
+			DeleteObject(_hFont);
 		PostQuitMessage(0);
 		break;
 	case WM_SOCKET:
@@ -740,7 +752,7 @@ std::string GetText(HWND hWnd)
 
 int ShowSettings(HWND hwndOwner)
 {
-	PROPSHEETPAGE psp[2];
+	PROPSHEETPAGE psp[3];
 	psp[0].dwSize = sizeof(PROPSHEETPAGE);
 	psp[0].dwFlags = PSP_USETITLE;
 	psp[0].hInstance = g_hInst;
@@ -771,24 +783,23 @@ int ShowSettings(HWND hwndOwner)
 					OPENFILENAME ofn = {};
 					wchar_t gamePath[MAX_PATH];
 
+					HWND hWnd = GetDlgItem(hDlg, IDC_EDIT_GTAPATH);
+					GetWindowText(hWnd, gamePath, sizeof(gamePath));
+
 					ofn.lStructSize = sizeof(ofn);
 					ofn.hwndOwner = hDlg;
 					ofn.lpstrFile = gamePath;
-					ofn.lpstrFile[0] = L'\0';
 					ofn.nMaxFile = sizeof(gamePath);
-					ofn.lpstrFilter = L"gta-vc.exe\0gta-vc.exe\0";
-					ofn.nFilterIndex = 1;
-					ofn.lpstrTitle = L"Test";
+					ofn.lpstrFilter = L"gta-vc.exe\0gta-vc.exe\0testapp.exe\0testapp.exe\0";
 					ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 
-					GetOpenFileName(&ofn);
-
+					if (GetOpenFileName(&ofn))
+						SetWindowText(hWnd, gamePath);
 				}
 				break;
 				}
 			}
-
-			if (HIWORD(wParam) == EN_CHANGE)
+			else if (HIWORD(wParam) == EN_CHANGE)
 				PropSheet_Changed(GetParent(hDlg), hDlg);
 			break;
 		case PSM_QUERYSIBLINGS: // Save settings
@@ -837,12 +848,20 @@ int ShowSettings(HWND hwndOwner)
 		return (INT_PTR)FALSE;
 	};
 
-	/*psp[2].dwSize = sizeof(PROPSHEETPAGE);
+	psp[2].dwSize = sizeof(PROPSHEETPAGE);
 	psp[2].dwFlags = PSP_USETITLE;
 	psp[2].hInstance = g_hInst;
-	psp[2].pszTemplate = MAKEINTRESOURCE(IDD_SET_UPDATE);
-	psp[2].pszTitle = LoadStr(L"Update", IDS_SET_UPDATE);
-	psp[2].pfnDlgProc = */
+	psp[2].pszTemplate = MAKEINTRESOURCE(IDD_SET_UI);
+	psp[2].pszTitle = LoadStr(L"UI", IDS_SET_UI);
+	psp[2].pfnDlgProc = [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR
+	{
+		switch (message)
+		{
+		case WM_INITDIALOG:
+			return (INT_PTR)TRUE;
+		}
+		return (INT_PTR)FALSE;
+	};
 
 	PROPSHEETHEADER psh;
 	psh.dwSize = sizeof(PROPSHEETHEADER);
