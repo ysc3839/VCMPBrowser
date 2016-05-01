@@ -513,7 +513,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					COLORREF crText;
 					size_t i = nmcd->nmcd.dwItemSpec;
 					if (g_serversList.size() > i && g_serversList[i].isOfficial)
-						crText = RGB(0, 0, 255);
+						crText = g_browserSettings.officialColor;
 					else
 						crText = 0;
 
@@ -855,10 +855,52 @@ int ShowSettings(HWND hwndOwner)
 	psp[2].pszTitle = LoadStr(L"UI", IDS_SET_UI);
 	psp[2].pfnDlgProc = [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR
 	{
+		static COLORREF officialColor;
 		switch (message)
 		{
 		case WM_INITDIALOG:
+			officialColor = g_browserSettings.officialColor;
 			return (INT_PTR)TRUE;
+		case WM_DRAWITEM:
+			if (wParam = IDC_STATIC_OFFICIAL_COLOR)
+			{
+				LPDRAWITEMSTRUCT dis = (LPDRAWITEMSTRUCT)lParam;
+				HBRUSH hBrush = CreateSolidBrush(officialColor);
+				if (hBrush)
+				{
+					FillRect(dis->hDC, &dis->rcItem, hBrush);
+					DeleteObject(hBrush);
+				}
+			}
+			break;
+		case WM_COMMAND:
+			switch (LOWORD(wParam))
+			{
+			case IDC_BTN_OFFICIAL_COLOR:
+			{
+				COLORREF custColors[16];
+				std::fill_n(custColors, 16, 0xFFFFFF);
+
+				CHOOSECOLOR cc = {};
+				cc.lStructSize = sizeof(cc);
+				cc.hwndOwner = hDlg;
+				cc.lpCustColors = custColors;
+				cc.rgbResult = officialColor;
+				cc.Flags = CC_FULLOPEN | CC_RGBINIT;
+
+				if (ChooseColor(&cc))
+				{
+					officialColor = cc.rgbResult;
+					InvalidateRect(GetDlgItem(hDlg, IDC_STATIC_OFFICIAL_COLOR), nullptr, FALSE);
+					PropSheet_Changed(GetParent(hDlg), hDlg);
+				}
+			}
+			break;
+			}
+			break;
+		case PSM_QUERYSIBLINGS: // Save settings
+			g_browserSettings.officialColor = officialColor;
+			break;
 		}
 		return (INT_PTR)FALSE;
 	};
@@ -877,7 +919,11 @@ int ShowSettings(HWND hwndOwner)
 		{
 		case PSCB_BUTTONPRESSED:
 			if (lParam == PSBTN_APPLYNOW || lParam == PSBTN_OK)
+			{
 				PropSheet_QuerySiblings(hWndDlg, 0, 0);
+				InvalidateRect(g_hWndListViewServers, nullptr, FALSE);
+				InvalidateRect(g_hWndListViewHistory, nullptr, FALSE);
+			}
 			break;
 		}
 		return 0;

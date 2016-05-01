@@ -89,6 +89,7 @@ struct settings
 	std::string gameUpdateURL;
 	std::string gameUpdatePassword;
 	std::string masterlistURL;
+	COLORREF officialColor;
 };
 
 #define WM_SOCKET WM_USER+1
