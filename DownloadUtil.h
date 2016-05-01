@@ -13,12 +13,15 @@ void DownloadVCMPGame(const char *version, const char *password)
 	writer.EndObject();
 
 	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
-		static long running = false;
+		static HANDLE hEvent;
 		switch (message)
 		{
 		case WM_INITDIALOG:
 		{
 			char *json = (char *)lParam;
+			hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+			if (!hEvent)
+				return (INT_PTR)FALSE;
 			std::thread thread([](HWND hWnd, char *json) {
 				CURL *curl = curl_easy_init();
 				if (curl)
@@ -45,7 +48,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 					progInfo progress = { hWnd, GetTickCount(), 0 };
 					curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress);
 					curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, (curl_xferinfo_callback)[](void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) -> int {
-						if (!_InterlockedCompareExchange(&running, 0, 0)) // Cancel
+						if (WaitForSingleObject(hEvent, 0) != WAIT_TIMEOUT) // Cancel
 							return 1;
 						if (dltotal != 0 && ultotal != 0)
 						{
@@ -69,9 +72,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 					curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json, CURLFORM_END);
 					curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
 
-					running = true;
 					CURLcode ret = curl_easy_perform(curl);
-					running = false;
 
 					fclose(file);
 
@@ -96,7 +97,8 @@ void DownloadVCMPGame(const char *version, const char *password)
 			}
 			break;
 		case WM_DESTROY:
-			running = false;
+			SetEvent(hEvent);
+			CloseHandle(hEvent);
 			return (INT_PTR)TRUE;
 		case WM_PROGRESS:
 			SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETPOS, wParam, 0);
