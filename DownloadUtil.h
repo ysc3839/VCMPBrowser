@@ -28,6 +28,8 @@ void DownloadVCMPGame(const char *version, const char *password)
 				{
 					curl_easy_setopt(curl, CURLOPT_URL, "http://u04.maxorator.com/download");
 
+					SetCurrentDirectory(g_exePath);
+
 					char fileName[16];
 					srand(GetTickCount());
 					snprintf(fileName, 16, "tmp%.4X.7z", rand());

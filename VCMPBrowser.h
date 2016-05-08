@@ -23,6 +23,8 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/encodings.h"
+#include "rapidjson/prettywriter.h"
 
 #define CURL_STATICLIB
 #include "curl/curl.h"
@@ -85,11 +87,12 @@ struct settings
 {
 	char playerName[24];
 	wchar_t gamePath[MAX_PATH];
-	updateFreq gameUpdateFreq; // In minute
+	updateFreq gameUpdateFreq;
 	std::string gameUpdateURL;
 	std::string gameUpdatePassword;
 	std::string masterlistURL;
 	COLORREF officialColor;
+	COLORREF custColors[16];
 };
 
 #define WM_SOCKET WM_USER+1
