@@ -12,9 +12,9 @@ HWND g_hWndListViewPlayers;
 HWND g_hWndGroupBox2;
 HWND g_hWndStatusBar;
 #include "i18n.h"
+wchar_t g_exePath[MAX_PATH];
 #include "DownloadUtil.h"
 
-wchar_t g_exePath[MAX_PATH];
 settings g_browserSettings;
 serverMasterList *g_serversMasterList = nullptr;
 int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
@@ -332,9 +332,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		int wmId = LOWORD(wParam);
 		switch (wmId)
 		{
-		case IDM_ABOUT:
+		case IDM_TOOLS_SETTINGS:
 			ShowSettings(hWnd);
-			//DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case IDM_ABOUT:
+			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
