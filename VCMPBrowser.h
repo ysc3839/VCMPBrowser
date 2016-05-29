@@ -24,7 +24,7 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/encodings.h"
-#include "rapidjson/prettywriter.h"
+#include "rapidjson/filereadstream.h"
 
 #define CURL_STATICLIB
 #include "curl/curl.h"

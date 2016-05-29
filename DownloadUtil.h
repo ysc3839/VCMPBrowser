@@ -1,6 +1,6 @@
 #pragma once
 
-void DownloadVCMPGame(const char *version, const char *password)
+void DownloadVCMPGame(HWND hWnd, const char *version, const char *password)
 {
 	rapidjson::StringBuffer json;
 	rapidjson::Writer<rapidjson::StringBuffer> writer(json);
@@ -12,7 +12,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 	writer.String(version);
 	writer.EndObject();
 
-	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
+	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), hWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
 		static HANDLE hEvent;
 		switch (message)
 		{

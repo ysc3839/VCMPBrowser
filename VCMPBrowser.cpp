@@ -3,6 +3,16 @@
 #include "ServerQueryUtil.h"
 
 HINSTANCE g_hInst;
+wchar_t g_exePath[MAX_PATH];
+settings g_browserSettings;
+serverMasterList *g_serversMasterList = nullptr;
+int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
+serverList g_serversList;
+
+#include "i18n.h"
+#include "DownloadUtil.h"
+#include "SettingsUtil.h"
+
 HWND g_hMainWnd;
 HWND g_hWndTab;
 HWND g_hWndListViewServers;
@@ -11,22 +21,12 @@ HWND g_hWndGroupBox1;
 HWND g_hWndListViewPlayers;
 HWND g_hWndGroupBox2;
 HWND g_hWndStatusBar;
-#include "i18n.h"
-wchar_t g_exePath[MAX_PATH];
-#include "DownloadUtil.h"
-
-settings g_browserSettings;
-serverMasterList *g_serversMasterList = nullptr;
-int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
-serverList g_serversList;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-void DownloadVCMPGame(const char *version, const char *password = "");
-int ShowSettings(HWND hwndOwner);
-void SaveSettings();
+int ShowSettings(HWND hWnd);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -35,20 +35,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-	
+
 	wcscpy_s(g_exePath, _wpgmptr);
 	auto c = wcsrchr(g_exePath, L'\\');
 	if (c) c[1] = L'\0';
+
+	LoadSettings();
 
 	SetThreadLocale(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
 	SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
 	InitMUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
 
-	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
-		return FALSE;
-
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NOERROR)
+		return FALSE;
+
+	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
 
 	MyRegisterClass(hInstance);
@@ -64,10 +66,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		DispatchMessage(&msg);
 	}
 
+	curl_global_cleanup();
+
 	WSACleanup();
 
-	curl_global_cleanup();
-	SaveSettings();
 	return (int)msg.wParam;
 }
 
@@ -758,7 +760,7 @@ std::string GetText(HWND hWnd)
 	return std::string();
 }
 
-int ShowSettings(HWND hwndOwner)
+int ShowSettings(HWND hWnd)
 {
 	PROPSHEETPAGE psp[3];
 	psp[0].dwSize = sizeof(PROPSHEETPAGE);
@@ -929,6 +931,7 @@ int ShowSettings(HWND hwndOwner)
 			if (lParam == PSBTN_APPLYNOW || lParam == PSBTN_OK)
 			{
 				PropSheet_QuerySiblings(hWndDlg, 0, 0);
+				SaveSettings();
 				InvalidateRect(g_hWndListViewServers, nullptr, FALSE);
 				InvalidateRect(g_hWndListViewHistory, nullptr, FALSE);
 			}
@@ -938,54 +941,4 @@ int ShowSettings(HWND hwndOwner)
 	};
 
 	return PropertySheet(&psh);
-}
-
-void SaveSettings()
-{
-	using rapidjson::UTF8;
-	using rapidjson::UTF16;
-
-	rapidjson::StringBuffer json;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(json);
-
-	writer.StartObject();
-
-	writer.Key("playerName");
-	writer.String(g_browserSettings.playerName);
-
-	writer.Key("gamePath");
-	rapidjson::GenericStringStream<UTF16<>> source(g_browserSettings.gamePath);
-	rapidjson::GenericStringBuffer<UTF8<>> target;
-	bool hasError = false;
-	while (source.Peek() != '\0') if (!rapidjson::Transcoder<UTF16<>, UTF8<>>::Transcode(source, target)) { hasError = true; break; }
-	writer.String(hasError ? "" : target.GetString());
-
-	writer.Key("gameUpdateFreq");
-	writer.Uint(g_browserSettings.gameUpdateFreq);
-
-	writer.Key("gameUpdateURL");
-	writer.String(g_browserSettings.gameUpdateURL);
-
-	writer.Key("gameUpdatePassword");
-	writer.String(g_browserSettings.gameUpdatePassword);
-
-	writer.Key("masterlistURL");
-	writer.String(g_browserSettings.masterlistURL);
-
-	writer.Key("officialColor");
-	writer.Uint(g_browserSettings.officialColor);
-
-	writer.Key("custColors");
-	writer.StartArray();
-	for (size_t i = 0; i < 16; ++i)
-		writer.Uint(g_browserSettings.custColors[i]);
-	writer.EndArray();
-
-	writer.EndObject();
-
-	SetCurrentDirectory(g_exePath);
-
-	FILE *file = _wfopen(L"settings.json", L"wb");
-	fwrite(json.GetString(), sizeof(char), json.GetSize(), file);
-	fclose(file);
 }
