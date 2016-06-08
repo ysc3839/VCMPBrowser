@@ -1,6 +1,4 @@
 #include "VCMPBrowser.h"
-#include "MasterListUtil.h"
-#include "ServerQueryUtil.h"
 
 HINSTANCE g_hInst;
 wchar_t g_exePath[MAX_PATH];
@@ -9,11 +7,15 @@ serverMasterList *g_serversMasterList = nullptr;
 int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
 serverList g_serversList;
 
+HWND g_hMainWnd;
+
 #include "i18n.h"
 #include "DownloadUtil.h"
 #include "SettingsUtil.h"
+#include "MasterListUtil.h"
+#include "ServerQueryUtil.h"
+#include "VCMPLauncher.h"
 
-HWND g_hMainWnd;
 HWND g_hWndTab;
 HWND g_hWndListViewServers;
 HWND g_hWndListViewHistory;
@@ -26,7 +28,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-int ShowSettings(HWND hWnd);
+int ShowSettings();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -42,9 +44,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	LoadSettings();
 
-	SetThreadLocale(MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
-	SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
-	InitMUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+	SetThreadLocale(MAKELCID(languages[g_browserSettings.language], SORT_DEFAULT));
+	SetThreadUILanguage(languages[g_browserSettings.language]);
+	InitMUILanguage(languages[g_browserSettings.language]);
 
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NOERROR)
@@ -241,7 +243,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			TabCtrl_InsertItem(g_hWndTab, 4, &tie);
 		}
 
-		g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL | LVS_OWNERDATA, rcClient.right - UI_PLAYERLIST_WIDTH + 1, 12, UI_PLAYERLIST_WIDTH - 2, rcClient.bottom - UI_SERVERINFO_HEIGHT - 12 - 2, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL | LVS_OWNERDATA, rcClient.right - UI_PLAYERLIST_WIDTH + 1, 18, UI_PLAYERLIST_WIDTH - 2, rcClient.bottom - UI_SERVERINFO_HEIGHT - 18 - 2, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewPlayers)
 		{
 			SetWindowTheme(g_hWndListViewPlayers, L"Explorer", nullptr);
@@ -335,7 +337,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case IDM_TOOLS_SETTINGS:
-			ShowSettings(hWnd);
+			ShowSettings();
 			break;
 		case IDM_ABOUT:
 			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -382,7 +384,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					std::string data;
 					data.reserve(2048);
 
-					CURLcode curlRet = CurlRequset(g_currentTab == 1 ? "http://master.vc-mp.org/servers" : "http://master.vc-mp.org/official", data, "VCMP/0.4");
+					const char *url;
+					if (g_currentTab == 1)
+						url = (g_browserSettings.masterlistURL + "/servers").c_str();
+					else
+						url = (g_browserSettings.masterlistURL + "/official").c_str();
+					CURLcode curlRet = CurlRequset(url, data, "VCMP/0.4");
 					if (curlRet == CURLE_OK)
 					{
 						serverMasterList serversList;
@@ -403,9 +410,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					else
 					{
 						wchar_t message[512];
-						std::wstring strerror;
-						ConvertCharset(curl_easy_strerror(curlRet), strerror);
-						swprintf_s(message, LoadStr(L"Can't get information from master list.\n%s", IDS_MASTERLISTFAILED), strerror.c_str());
+						swprintf_s(message, LoadStr(L"Can't get information from master list.\n%hs", IDS_MASTERLISTFAILED), curl_easy_strerror(curlRet));
 						MessageBox(hWnd, message, LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 					}
 
@@ -590,7 +595,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetWindowPos(g_hWndListViewServers, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
 		SetWindowPos(g_hWndListViewHistory, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
 		SetWindowPos(g_hWndGroupBox1, 0, clientWidth - UI_PLAYERLIST_WIDTH, 0, UI_PLAYERLIST_WIDTH, clientHeight - UI_SERVERINFO_HEIGHT, SWP_NOZORDER);
-		SetWindowPos(g_hWndListViewPlayers, 0, clientWidth - UI_PLAYERLIST_WIDTH + 1, 12, UI_PLAYERLIST_WIDTH - 2, clientHeight - UI_SERVERINFO_HEIGHT - 12 - 2, SWP_NOZORDER);
+		SetWindowPos(g_hWndListViewPlayers, 0, clientWidth - UI_PLAYERLIST_WIDTH + 1, 18, UI_PLAYERLIST_WIDTH - 2, clientHeight - UI_SERVERINFO_HEIGHT - 18 - 2, SWP_NOZORDER);
 		SetWindowPos(g_hWndGroupBox2, 0, 0, clientHeight - UI_SERVERINFO_HEIGHT, clientWidth, 118, SWP_NOZORDER);
 		SendMessage(g_hWndStatusBar, WM_SIZE, 0, 0);
 	}
@@ -760,7 +765,7 @@ std::string GetText(HWND hWnd)
 	return std::string();
 }
 
-int ShowSettings(HWND hWnd)
+int ShowSettings()
 {
 	PROPSHEETPAGE psp[3];
 	psp[0].dwSize = sizeof(PROPSHEETPAGE);
@@ -866,11 +871,43 @@ int ShowSettings(HWND hWnd)
 	psp[2].pfnDlgProc = [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR
 	{
 		static COLORREF officialColor;
+		static std::vector<std::pair<int, std::wstring>> codePages;
 		switch (message)
 		{
 		case WM_INITDIALOG:
+		{
+			HWND hComboBox = GetDlgItem(hDlg, IDC_COM_LANGUAGE);
+			for (size_t i = 0; i < std::size(languages); i++)
+			{
+				ComboBox_AddString(hComboBox, languageNames[i]);
+			}
+			ComboBox_SetCurSel(hComboBox, g_browserSettings.language);
 			officialColor = g_browserSettings.officialColor;
+
+			/*std::pair<int, std::wstring> info = { CP_ACP, L"Default" };
+			codePages.push_back(info);
+			EnumSystemCodePages([](LPWSTR lpCodePageString) -> BOOL {
+				int codePage = _wtoi(lpCodePageString);
+				CPINFOEX cpinfo;
+				if (GetCPInfoEx(codePage, 0, &cpinfo))
+				{
+					std::pair<int, std::wstring> info = { codePage, std::wstring(cpinfo.CodePageName) };
+					codePages.push_back(info);
+				}
+				return TRUE;
+			}, CP_SUPPORTED);
+
+			hComboBox = GetDlgItem(hDlg, IDC_COM_CHARSET);
+			for (auto codePage : codePages)
+			{
+				ComboBox_AddString(hComboBox, codePage.second.c_str());
+			}*/
+			//ComboBox_SetCurSel(hComboBox, g_browserSettings.language);
 			return (INT_PTR)TRUE;
+		}
+		case WM_DESTROY:
+			codePages.clear();
+			break;
 		case WM_DRAWITEM:
 			if (wParam = IDC_STATIC_OFFICIAL_COLOR)
 			{
@@ -884,13 +921,12 @@ int ShowSettings(HWND hWnd)
 			}
 			break;
 		case WM_COMMAND:
+			if (HIWORD(wParam) == CBN_SELCHANGE)
+				PropSheet_Changed(GetParent(hDlg), hDlg);
 			switch (LOWORD(wParam))
 			{
 			case IDC_BTN_OFFICIAL_COLOR:
 			{
-				//COLORREF custColors[16];
-				//std::fill_n(custColors, 16, 0xFFFFFF);
-
 				CHOOSECOLOR cc = {};
 				cc.lStructSize = sizeof(cc);
 				cc.hwndOwner = hDlg;
@@ -909,6 +945,7 @@ int ShowSettings(HWND hWnd)
 			}
 			break;
 		case PSM_QUERYSIBLINGS: // Save settings
+			g_browserSettings.language = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_LANGUAGE));
 			g_browserSettings.officialColor = officialColor;
 			break;
 		}
@@ -918,7 +955,7 @@ int ShowSettings(HWND hWnd)
 	PROPSHEETHEADER psh;
 	psh.dwSize = sizeof(PROPSHEETHEADER);
 	psh.dwFlags = PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP | PSH_USECALLBACK;
-	psh.hwndParent = hwndOwner;
+	psh.hwndParent = g_hMainWnd;
 	psh.hInstance = g_hInst;
 	psh.pszCaption = LoadStr(L"Settings", IDS_SETTINGS);
 	psh.nPages = sizeof(psp) / sizeof(PROPSHEETPAGE);

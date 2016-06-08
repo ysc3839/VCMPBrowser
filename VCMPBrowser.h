@@ -85,6 +85,7 @@ enum updateFreq
 
 struct settings
 {
+	LANGID language;
 	char playerName[24];
 	wchar_t gamePath[MAX_PATH];
 	updateFreq gameUpdateFreq;

@@ -10,6 +10,9 @@ void SaveSettings()
 
 	writer.StartObject();
 
+	writer.Key("language");
+	writer.Uint(g_browserSettings.language);
+
 	writer.Key("playerName");
 	writer.String(g_browserSettings.playerName);
 
@@ -83,7 +86,11 @@ void LoadSettings()
 			if (dom.ParseStream(is).HasParseError() || !dom.IsObject())
 				break;
 
-			auto member = dom.FindMember("playerName");
+			auto member = dom.FindMember("language");
+			if (member != dom.MemberEnd() && member->value.IsUint())
+				g_browserSettings.language = member->value.GetUint();
+
+			member = dom.FindMember("playerName");
 			if (member != dom.MemberEnd() && member->value.IsString())
 				strncpy(g_browserSettings.playerName, member->value.GetString(), sizeof(g_browserSettings.playerName));
 
