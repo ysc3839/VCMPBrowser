@@ -10,7 +10,7 @@ int MessageBoxPrintError(HWND hWnd, LPCWSTR lpText, ...)
 	return MessageBox(hWnd, buffer, LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 }
 
-bool LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const char* password, const wchar_t* gtaExe, const char* vcmpDll)
+void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const char* password, const wchar_t* gtaExe, const char* vcmpDll)
 {
 	wchar_t commandLine[128];
 	if (password != nullptr)
@@ -53,7 +53,19 @@ bool LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 							// Wiat for the inject thread.
 							if (WaitForSingleObject(hInjectThread, 10000) == WAIT_OBJECT_0)
 							{
-								ResumeThread(pi.hThread);
+								DWORD exitCode;
+								if (GetExitCodeThread(hInjectThread, &exitCode))
+								{
+									if (exitCode != 0)
+										ResumeThread(pi.hThread);
+									else
+									{
+										TerminateProcess(pi.hProcess, 0);
+										MessageBox(g_hMainWnd, L"Injected thread failed!\n", LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
+									}
+								}
+								else
+									MessageBoxPrintError(g_hMainWnd, L"GetExitCodeThread failed! (%u)\n", GetLastError());
 							}
 							else
 								MessageBox(g_hMainWnd, L"Injected thread hung!\n", LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);

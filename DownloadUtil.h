@@ -32,7 +32,7 @@ void DownloadVCMPGame(const char *version, const char *password)
 
 					char fileName[16];
 					srand(GetTickCount());
-					snprintf(fileName, 16, "tmp%.4X.7z", rand());
+					snprintf(fileName, sizeof(fileName), "tmp%.4X.7z", rand());
 					FILE *file = fopen(fileName, "wb");
 					if (file == nullptr)
 					{
