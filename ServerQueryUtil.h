@@ -15,7 +15,6 @@ void SendQuery(serverAddress address, char opcode)
 	sendto(g_UDPSocket, buffer, sizeof(buffer), 0, (sockaddr *)&sendaddr, sizeof(sendaddr));
 }
 
-
 bool GetServerInfo(char *data, int length, serverInfo &serverInfo)
 {
 	if (length < 11 + 12 + 1 + 2 + 2 + 4) // 12=Version name, 1=Password, 2=Players, 2=MaxPlayers, 4=strlen
