@@ -747,6 +747,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+void ShowLicenseWindow(HWND hWnd, int ID)
+{
+	HRSRC hRes = FindResource(g_hInst, MAKEINTRESOURCE(ID), L"TEXT");
+	if (hRes != nullptr)
+	{
+		HGLOBAL hResData = LoadResource(g_hInst, hRes);
+		if (hResData != nullptr)
+		{
+			DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_LICENSE), hWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
+				switch (message)
+				{
+				case WM_INITDIALOG:
+				{
+					SetDlgItemTextA(hDlg, IDC_EDIT, (LPCSTR)lParam);
+					return (INT_PTR)TRUE;
+				}
+				case WM_CLOSE:
+					EndDialog(hDlg, 0);
+					return (INT_PTR)TRUE;
+				}
+				return (INT_PTR)FALSE;
+			}, (LPARAM)hResData);
+			FreeResource(hResData);
+		}
+	}
+}
+
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
@@ -765,7 +792,17 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case NM_CLICK:
 		case NM_RETURN:
-			ShellExecute(hDlg, L"open", ((PNMLINK)lParam)->item.szUrl, nullptr, nullptr, SW_SHOW);
+		{
+			wchar_t *ID = ((PNMLINK)lParam)->item.szID;
+			if (wcscmp(ID, L"license") == 0)
+				ShowLicenseWindow(hDlg, 1);
+			else if (wcscmp(ID, L"curl") == 0)
+				ShowLicenseWindow(hDlg, 2);
+			else if (wcscmp(ID, L"rapidjson") == 0)
+				ShowLicenseWindow(hDlg, 3);
+			else
+				ShellExecute(hDlg, L"open", ((PNMLINK)lParam)->item.szUrl, nullptr, nullptr, SW_SHOW);
+		}
 		}
 	}
 	return (INT_PTR)FALSE;

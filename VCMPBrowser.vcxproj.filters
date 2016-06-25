@@ -64,4 +64,29 @@
       <Filter>资源文件</Filter>
     </Manifest>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\VCMPBrowser.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\small.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\favorite.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\internet.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\lan.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\history.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" />
+    <None Include="CURL_LICENSE" />
+    <None Include="rapidjson_license" />
+  </ItemGroup>
 </Project>

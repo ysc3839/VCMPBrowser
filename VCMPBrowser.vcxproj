@@ -111,6 +111,19 @@
   <ItemGroup>
     <Manifest Include="VCMPBrowser.exe.manifest" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\favorite.ico" />
+    <Image Include="res\history.ico" />
+    <Image Include="res\internet.ico" />
+    <Image Include="res\lan.ico" />
+    <Image Include="res\small.ico" />
+    <Image Include="res\VCMPBrowser.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CURL_LICENSE" />
+    <None Include="LICENSE" />
+    <None Include="rapidjson_license" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
