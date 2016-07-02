@@ -52,10 +52,7 @@
     <ResourceCompile Include="VCMPBrowser.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
-    <ResourceCompile Include="langs\zh_CN.rc">
-      <Filter>资源文件\langs</Filter>
-    </ResourceCompile>
-    <ResourceCompile Include="langs\en_US.rc">
+    <ResourceCompile Include="langs\en-US.rc">
       <Filter>资源文件\langs</Filter>
     </ResourceCompile>
   </ItemGroup>

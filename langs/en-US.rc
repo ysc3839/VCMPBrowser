@@ -1,0 +1,228 @@
+#pragma code_page(65001)
+// Microsoft Visual C++ generated resource script.
+//
+#include "../resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 英语(美国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDC_VCMPBROWSER MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "E&xit",                       IDM_EXIT
+    END
+    POPUP "&Tools"
+    BEGIN
+        MENUITEM "&Settings...",                IDM_TOOLS_SETTINGS
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About...",                   IDM_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 188, 95
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About VCMPBrowser"
+FONT 9, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDI_VCMPBROWSER,IDC_STATIC,14,14,20,20
+    LTEXT           "VCMPBrowser Version 1.0",IDC_STATIC,42,12,114,8,SS_NOPREFIX
+    LTEXT           "Copyright © 2016 ysc3839",IDC_STATIC,42,24,114,8
+    DEFPUSHBUTTON   "OK",IDOK,132,72,50,14,WS_GROUP
+    CONTROL         "Website: <a href=""http://www.vc-mp.org"">www.vc-mp.org</a>",IDC_STATIC,
+                    "SysLink",WS_TABSTOP,42,36,114,8
+    CONTROL         "Thanks: <a id=""curl"">curl</a> && <a id=""rapidjson"">rapidjson</a>",IDC_STATIC,
+                    "SysLink",WS_TABSTOP,42,48,114,8
+    CONTROL         "Licensed under <a id=""license"">MIT</a>.",IDC_STATIC,
+                    "SysLink",WS_TABSTOP,42,60,114,8
+END
+
+IDD_LOADING DIALOGEX 0, 0, 200, 90
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_BORDER
+EXSTYLE WS_EX_NOACTIVATE
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Retrieving server list. Please wait...",IDC_STATIC,43,41,116,8
+END
+
+IDD_UPDATE DIALOGEX 0, 0, 265, 60
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Update"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Cancel",IDCANCEL,208,39,50,14
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,15,15,235,14
+    LTEXT           "",IDC_TIPSTATIC,15,39,192,8
+END
+
+IDD_SET_GAME DIALOGEX 0, 0, 236, 74
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Player Name:",IDC_STATIC,6,9,44,8
+    EDITTEXT        IDC_EDIT_PLAYERNAME,54,6,156,14,ES_AUTOHSCROLL
+    LTEXT           "GTA:VC Location:",IDC_STATIC,6,24,57,8
+    EDITTEXT        IDC_EDIT_GTAPATH,6,36,222,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BTN_BROWSE,180,54,50,14
+    PUSHBUTTON      "Autolocate CD version",IDC_BTN_CD,6,54,76,14
+    PUSHBUTTON      "Autolocate Steam version",IDC_BTN_STEAM,84,54,87,14
+END
+
+IDD_SET_UPDATE DIALOGEX 0, 0, 236, 122
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Game Update Frequency:",IDC_STATIC,6,8,83,8
+    COMBOBOX        IDC_COM_FREQ,90,6,96,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Game Updater URL:",IDC_STATIC,6,24,64,8
+    EDITTEXT        IDC_EDIT_UPD_URL,6,36,222,14,ES_AUTOHSCROLL
+    LTEXT           "Game Updater Password: (Leave blank if you don't have it)",IDC_STATIC,6,54,190,8
+    EDITTEXT        IDC_EDIT_UPD_PASS,6,66,222,14,ES_AUTOHSCROLL
+    LTEXT           "Masterlist URL:",IDC_STATIC,6,84,49,8
+    EDITTEXT        IDC_EDIT_MASTER_URL,6,96,222,14,ES_AUTOHSCROLL
+END
+
+IDD_SET_UI DIALOGEX 0, 0, 236, 86
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Language:",IDC_STATIC,6,8,35,8
+    COMBOBOX        IDC_COM_LANGUAGE,42,6,120,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "CodePage for server info:",IDC_STATIC,6,68,84,8
+    COMBOBOX        IDC_COM_CHARSET,96,66,120,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Official server color:",IDC_STATIC,6,27,66,8
+    CONTROL         "",IDC_STATIC_OFFICIAL_COLOR,"Static",SS_OWNERDRAW,78,27,18,8
+    PUSHBUTTON      "Choose...",IDC_BTN_OFFICIAL_COLOR,102,24,50,14
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "../resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""windows.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 77
+    END
+
+    IDD_SET_UI, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 44
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_TITLE           "VCMPBrowser"
+    IDS_FAVORITES           "Favorites"
+    IDS_INTERNET            "Internet"
+    IDS_OFFICIAL            "Official"
+    IDS_HISTORY             "History"
+    IDS_SERVERNAME          "Server Name"
+    IDS_PING                "Ping"
+    IDS_PLAYERS             "Players"
+    IDS_VERSION             "Version"
+    IDS_GAMEMODE            "Gamemode"
+    IDS_MAPNAME             "Map Name"
+    IDS_LASTPLAYED          "Last Played"
+    IDS_PLAYERSLIST         "Players"
+    IDS_SERVERINFO          "Server Info"
+    IDS_SERVERIP            "Server IP:"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SERVERNAME_         "Server Name:"
+    IDS_SERVERPLAYERS       "Server Players:"
+    IDS_SERVERPING          "Server Ping:"
+    IDS_SERVERGAMEMODE      "Server Gamemode:"
+    IDS_LAN                 "Lan"
+    IDS_MASTERLISTFAILED    "Can't get information from master list.\n%s"
+    IDS_ERROR               "Error"
+    IDS_MASTERLISTDATA      "Can't parse master list data."
+    IDS_SET_GAME            "Game"
+    IDS_SET_UPDATE          "Update"
+    IDS_SET_UI              "UI"
+    IDS_SETTINGS            "Settings"
+    IDS_EVERY_START         "Every start"
+    IDS_EVERY_DAY           "Every day"
+    IDS_EVERY_2DAY          "Every two days"
+    IDS_EVERY_WEEK          "Every week"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_NEVER               "Never"
+END
+
+#endif    // 英语(美国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
