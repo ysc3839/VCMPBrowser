@@ -1,4 +1,3 @@
-#pragma code_page(65001)
 // Microsoft Visual C++ generated resource script.
 //
 #include "../resource.h"
@@ -20,6 +19,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(65001)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -118,7 +118,7 @@ BEGIN
     LTEXT           "Language:",IDC_STATIC,6,8,35,8
     COMBOBOX        IDC_COM_LANGUAGE,42,6,120,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "CodePage for server info:",IDC_STATIC,6,68,84,8
-    COMBOBOX        IDC_COM_CHARSET,96,66,120,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COM_CHARSET,96,66,138,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Official server color:",IDC_STATIC,6,27,66,8
     CONTROL         "",IDC_STATIC_OFFICIAL_COLOR,"Static",SS_OWNERDRAW,78,27,18,8
     PUSHBUTTON      "Choose...",IDC_BTN_OFFICIAL_COLOR,102,24,50,14
@@ -150,28 +150,6 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_ABOUTBOX, DIALOG
-    BEGIN
-        BOTTOMMARGIN, 77
-    END
-
-    IDD_SET_UI, DIALOG
-    BEGIN
-        BOTTOMMARGIN, 44
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -220,6 +198,18 @@ END
 STRINGTABLE
 BEGIN
     IDS_NEVER               "Never"
+    IDS_INFORMATION         "Information"
+    IDS_NONAME              "You have not set your player name!"
+    IDS_NOGAME              "You have not set your game path!"
+    IDS_INJECTFAIL          "Injected thread failed!"
+    IDS_GETEXITCODEFAIL     "GetExitCodeThread failed! (%u)"
+    IDS_THREADHUNG          "Injected thread hung!"
+    IDS_CREATEREMOTETHREADFAIL "CreateRemoteThread failed! (%u)"
+    IDS_GETPROCADDRESSFAIL  "GetProcAddress failed! (%u)"
+    IDS_GETMODULEHANDLEFAIL "GetModuleHandle failed! (%u)"
+    IDS_WRITEMEMORYFAIL     "WriteProcessMemory failed! (%u)"
+    IDS_VIRTUALALLOCFAIL    "VirtualAllocEx failed! (%u)"
+    IDS_CREATEPROCESSFAIL   "CreateProcess failed! (%u)"
 END
 
 #endif    // 英语(美国) resources

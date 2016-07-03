@@ -88,13 +88,14 @@ struct settings
 {
 	LANGID language;
 	char playerName[24];
-	wchar_t gamePath[MAX_PATH];
+	std::wstring gamePath;
 	updateFreq gameUpdateFreq;
 	std::string gameUpdateURL;
 	std::string gameUpdatePassword;
 	std::string masterlistURL;
 	COLORREF officialColor;
 	COLORREF custColors[16];
+	uint32_t codePage;
 };
 
 #define WM_SOCKET WM_USER+1

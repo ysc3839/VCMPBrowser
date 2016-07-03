@@ -460,7 +460,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						case 1: // Server Name
 							if (di->item.cchTextMax > 0 && di->item.pszText)
 							{
-								MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+								MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 							}
 							break;
 						case 2: // Ping
@@ -474,17 +474,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							break;
 						case 4: // Version
 						{
-							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.versionName, -1, di->item.pszText, di->item.cchTextMax);
+							MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.versionName, -1, di->item.pszText, di->item.cchTextMax);
 						}
 						break;
 						case 5: // Gamemode
 						{
-							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+							MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 						}
 						break;
 						case 6: // Map name
 						{
-							MultiByteToWideChar(CP_ACP, 0, g_serversList[i].info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+							MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 						}
 						break;
 						}
@@ -507,7 +507,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						if (di->item.mask & LVIF_TEXT)
 						{
-							MultiByteToWideChar(CP_ACP, 0, players[j].name, -1, di->item.pszText, di->item.cchTextMax);
+							MultiByteToWideChar(g_browserSettings.codePage, 0, players[j].name, -1, di->item.pszText, di->item.cchTextMax);
 						}
 					}
 				}
@@ -593,12 +593,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				size_t i = nmia->iItem;
 				if (i != -1 && g_serversList.size() > i)
 				{
+					if (strlen(g_browserSettings.playerName) == 0)
+					{
+						MessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+						break;
+					}
+					else if (g_browserSettings.gamePath.empty())
+					{
+						MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+						break;
+					}
 					char ipstr[16];
 					char *ip = (char *)&(g_serversList[i].address.ip);
 					snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
 					char vcmpDll[MAX_PATH];
 					snprintf(vcmpDll, sizeof(vcmpDll), "%ls%s\\vcmp-game.dll", g_exePath, g_serversList[i].info.versionName);
-					LaunchVCMP(ipstr, g_serversList[i].address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath, vcmpDll);
+					LaunchVCMP(ipstr, g_serversList[i].address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
 				}
 			}
 		}
@@ -820,6 +830,18 @@ std::string GetText(HWND hWnd)
 	return std::string();
 }
 
+std::wstring GetTextW(HWND hWnd)
+{
+	size_t len = GetWindowTextLengthW(hWnd) + 1;
+	if (len != 0)
+	{
+		wchar_t *text = (wchar_t *)alloca(len * sizeof(wchar_t));
+		len = GetWindowTextW(hWnd, text, len);
+		return std::wstring(text, len);
+	}
+	return std::wstring();
+}
+
 int ShowSettings()
 {
 	PROPSHEETPAGE psp[3];
@@ -840,7 +862,7 @@ int ShowSettings()
 
 			hWnd = GetDlgItem(hDlg, IDC_EDIT_GTAPATH);
 			Edit_LimitText(hWnd, 260);
-			SetWindowText(hWnd, g_browserSettings.gamePath);
+			SetWindowText(hWnd, g_browserSettings.gamePath.c_str());
 			return (INT_PTR)TRUE;
 		}
 		case WM_COMMAND:
@@ -874,7 +896,7 @@ int ShowSettings()
 			break;
 		case PSM_QUERYSIBLINGS: // Save settings
 			GetDlgItemTextA(hDlg, IDC_EDIT_PLAYERNAME, g_browserSettings.playerName, 24);
-			GetDlgItemText(hDlg, IDC_EDIT_GTAPATH, g_browserSettings.gamePath, 260);
+			g_browserSettings.gamePath = GetTextW(GetDlgItem(hDlg, IDC_EDIT_GTAPATH));
 			break;
 		}
 		return (INT_PTR)FALSE;
@@ -939,7 +961,7 @@ int ShowSettings()
 			ComboBox_SetCurSel(hComboBox, g_browserSettings.language);
 			officialColor = g_browserSettings.officialColor;
 
-			/*std::pair<int, std::wstring> info = { CP_ACP, L"Default" };
+			std::pair<int, std::wstring> info = { CP_ACP, L"Default" };
 			codePages.push_back(info);
 			EnumSystemCodePages([](LPWSTR lpCodePageString) -> BOOL {
 				int codePage = _wtoi(lpCodePageString);
@@ -953,18 +975,21 @@ int ShowSettings()
 			}, CP_SUPPORTED);
 
 			hComboBox = GetDlgItem(hDlg, IDC_COM_CHARSET);
-			for (auto codePage : codePages)
+			int i = 0;
+			for (auto it = codePages.begin(); it != codePages.end(); ++it)
 			{
-				ComboBox_AddString(hComboBox, codePage.second.c_str());
-			}*/
-			//ComboBox_SetCurSel(hComboBox, g_browserSettings.language);
+				ComboBox_AddString(hComboBox, it->second.c_str());
+				if (it->first == g_browserSettings.codePage)
+					i = it - codePages.begin();
+			}
+			ComboBox_SetCurSel(hComboBox, i);
 			return (INT_PTR)TRUE;
 		}
 		case WM_DESTROY:
 			codePages.clear();
 			break;
 		case WM_DRAWITEM:
-			if (wParam = IDC_STATIC_OFFICIAL_COLOR)
+			if (wParam == IDC_STATIC_OFFICIAL_COLOR)
 			{
 				LPDRAWITEMSTRUCT dis = (LPDRAWITEMSTRUCT)lParam;
 				HBRUSH hBrush = CreateSolidBrush(officialColor);
@@ -1002,6 +1027,9 @@ int ShowSettings()
 		case PSM_QUERYSIBLINGS: // Save settings
 			g_browserSettings.language = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_LANGUAGE));
 			g_browserSettings.officialColor = officialColor;
+			size_t i = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_CHARSET));
+			if (codePages.size() > i)
+				g_browserSettings.codePage = codePages[i].first;
 			break;
 		}
 		return (INT_PTR)FALSE;

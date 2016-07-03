@@ -13,11 +13,14 @@ void SaveSettings()
 	writer.Key("language");
 	writer.Uint(g_browserSettings.language);
 
+	writer.Key("language");
+	writer.Uint(g_browserSettings.codePage);
+
 	writer.Key("playerName");
 	writer.String(g_browserSettings.playerName);
 
 	writer.Key("gamePath");
-	rapidjson::GenericStringStream<UTF16<>> source(g_browserSettings.gamePath);
+	rapidjson::GenericStringStream<UTF16<>> source(g_browserSettings.gamePath.c_str());
 	rapidjson::StringBuffer target;
 	bool hasError = false;
 	while (source.Peek() != '\0') if (!rapidjson::Transcoder<UTF16<>, UTF8<>>::Transcode(source, target)) { hasError = true; break; }
@@ -59,7 +62,7 @@ void SaveSettings()
 void DefaultSettings()
 {
 	memset(g_browserSettings.playerName, 0, sizeof(g_browserSettings.playerName));
-	memset(g_browserSettings.gamePath, 0, sizeof(g_browserSettings.gamePath));
+	g_browserSettings.gamePath = L"";
 	g_browserSettings.gameUpdateFreq = START;
 	g_browserSettings.gameUpdateURL = "http://u04.maxorator.com";
 	g_browserSettings.gameUpdatePassword = "";
@@ -90,6 +93,10 @@ void LoadSettings()
 			if (member != dom.MemberEnd() && member->value.IsUint())
 				g_browserSettings.language = member->value.GetUint();
 
+			member = dom.FindMember("codePage");
+			if (member != dom.MemberEnd() && member->value.IsUint())
+				g_browserSettings.codePage = member->value.GetUint();
+
 			member = dom.FindMember("playerName");
 			if (member != dom.MemberEnd() && member->value.IsString())
 				strncpy(g_browserSettings.playerName, member->value.GetString(), sizeof(g_browserSettings.playerName));
@@ -104,7 +111,7 @@ void LoadSettings()
 				rapidjson::GenericStringBuffer<UTF16<>> target;
 				bool hasError = false;
 				while (source.Peek() != '\0') if (!rapidjson::Transcoder<UTF8<>, UTF16<>>::Transcode(source, target)) { hasError = true; break; }
-				wcsncpy(g_browserSettings.gamePath, target.GetString(), sizeof(g_browserSettings.gamePath));
+				g_browserSettings.gamePath = std::wstring(target.GetString(), target.GetSize());
 			}
 
 			member = dom.FindMember("gameUpdateFreq");

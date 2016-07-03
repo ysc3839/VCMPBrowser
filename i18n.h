@@ -3,13 +3,11 @@
 const LANGID languages[] = {
 	LANG_NEUTRAL,
 	MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US),
-	MAKELANGID(LANG_CHINESE,SUBLANG_CHINESE_SIMPLIFIED)
 };
 
 const wchar_t *languageNames[] = {
 	L"Default",
 	L"English",
-	L"Chinese (Simplified)"
 };
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }

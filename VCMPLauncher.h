@@ -14,9 +14,9 @@ void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 {
 	wchar_t commandLine[128];
 	if (password != nullptr)
-		swprintf_s(commandLine, sizeof(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", IP, port, playerName, password);
+		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", IP, port, playerName, password);
 	else
-		swprintf_s(commandLine, sizeof(commandLine), L"-c -h %hs -c -p %hu -n %hs", IP, port, playerName);
+		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", IP, port, playerName);
 
 	// Get GTA directory.
 	wchar_t GTADriectory[MAX_PATH];
@@ -61,37 +61,37 @@ void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 									else
 									{
 										TerminateProcess(pi.hProcess, 0);
-										MessageBox(g_hMainWnd, L"Injected thread failed!\n", LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
+										MessageBox(g_hMainWnd, LoadStr(L"Injected thread failed!", IDS_INJECTFAIL), LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 									}
 								}
 								else
-									MessageBoxPrintError(g_hMainWnd, L"GetExitCodeThread failed! (%u)\n", GetLastError());
+									MessageBoxPrintError(g_hMainWnd, LoadStr(L"GetExitCodeThread failed! (%u)", IDS_GETEXITCODEFAIL), GetLastError());
 							}
 							else
-								MessageBox(g_hMainWnd, L"Injected thread hung!\n", LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
+								MessageBox(g_hMainWnd, LoadStr(L"Injected thread hung!", IDS_THREADHUNG), LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 
 							CloseHandle(hInjectThread);
 						}
 						else
-							MessageBoxPrintError(g_hMainWnd, L"CreateRemoteThread failed! (%u)\n", GetLastError());
+							MessageBoxPrintError(g_hMainWnd, LoadStr(L"CreateRemoteThread failed! (%u)", IDS_CREATEREMOTETHREADFAIL), GetLastError());
 					}
 					else
-						MessageBoxPrintError(g_hMainWnd, L"GetProcAddress failed! (%u)\n", GetLastError());
+						MessageBoxPrintError(g_hMainWnd, LoadStr(L"GetProcAddress failed! (%u)", IDS_GETPROCADDRESSFAIL), GetLastError());
 				}
 				else
-					MessageBoxPrintError(g_hMainWnd, L"GetModuleHandle failed! (%u)\n", GetLastError());
+					MessageBoxPrintError(g_hMainWnd, LoadStr(L"GetModuleHandle failed! (%u)", IDS_GETMODULEHANDLEFAIL), GetLastError());
 			}
 			else
-				MessageBoxPrintError(g_hMainWnd, L"WriteProcessMemory failed! (%u)\n", GetLastError());
+				MessageBoxPrintError(g_hMainWnd, LoadStr(L"WriteProcessMemory failed! (%u)", IDS_WRITEMEMORYFAIL), GetLastError());
 
 			VirtualFreeEx(pi.hProcess, lpMem, 0, MEM_RELEASE);
 		}
 		else
-			MessageBoxPrintError(g_hMainWnd, L"VirtualAllocEx failed! (%u)\n", GetLastError());
+			MessageBoxPrintError(g_hMainWnd, LoadStr(L"VirtualAllocEx failed! (%u)", IDS_VIRTUALALLOCFAIL), GetLastError());
 
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 	}
 	else
-		MessageBoxPrintError(g_hMainWnd, L"CreateProcess failed! (%u)\n", GetLastError());
+		MessageBoxPrintError(g_hMainWnd, LoadStr(L"CreateProcess failed! (%u)", IDS_CREATEPROCESSFAIL), GetLastError());
 }
