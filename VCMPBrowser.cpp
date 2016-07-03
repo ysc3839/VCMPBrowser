@@ -384,12 +384,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					std::string data;
 					data.reserve(2048);
 
-					const char *url;
+					std::string url;
 					if (g_currentTab == 1)
-						url = (g_browserSettings.masterlistURL + "/servers").c_str();
+						url = g_browserSettings.masterlistURL + "/servers";
 					else
-						url = (g_browserSettings.masterlistURL + "/official").c_str();
-					CURLcode curlRet = CurlRequset(url, data, "VCMP/0.4");
+						url = g_browserSettings.masterlistURL + "/official";
+					CURLcode curlRet = CurlRequset(url.c_str(), data, "VCMP/0.4");
 					if (curlRet == CURLE_OK)
 					{
 						serverMasterList serversList;
