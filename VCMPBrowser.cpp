@@ -539,7 +539,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
-		case LVN_ITEMCHANGED:
+		case NM_CLICK:
 		{
 			LPNMITEMACTIVATE nmitem = (LPNMITEMACTIVATE)lParam;
 			if (nmitem->hdr.hwndFrom == g_hWndListViewServers)
@@ -547,8 +547,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				size_t i = nmitem->iItem;
 				if (i != -1 && g_serversList.size() > i)
 				{
-					if (g_serversList[i].info.players == 0)
-						ListView_DeleteAllItems(g_hWndListViewPlayers);
+					if (g_serversList[i].info.players == 0 || g_serversList[i].info.players != 0 && !g_serversList[i].players.empty())
+						ListView_SetItemCount(g_hWndListViewPlayers, g_serversList[i].info.players);
 
 					std::wstring wstr;
 
@@ -734,7 +734,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 												it->lastPing[1] = it->lastPing[0];
 												it->players = players;
 												auto i = it - g_serversList.begin();
-												ListView_SetItemCount(g_hWndListViewPlayers, players.size());
+												if (i == ListView_GetSelectionMark(g_hWndListViewServers))
+													ListView_SetItemCount(g_hWndListViewPlayers, players.size());
 												break;
 											}
 										}
