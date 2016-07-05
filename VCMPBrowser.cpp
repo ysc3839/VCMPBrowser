@@ -539,48 +539,53 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
-		case NM_CLICK:
+		case LVN_ITEMCHANGED:
 		{
 			LPNMITEMACTIVATE nmitem = (LPNMITEMACTIVATE)lParam;
-			if (nmitem->hdr.hwndFrom == g_hWndListViewServers)
+			if ((nmitem->uChanged & LVIF_STATE) && (nmitem->uNewState & LVIS_SELECTED))
 			{
-				size_t i = nmitem->iItem;
-				if (i != -1 && g_serversList.size() > i)
+				if (nmitem->hdr.hwndFrom == g_hWndListViewServers)
 				{
-					if (g_serversList[i].info.players == 0 || g_serversList[i].info.players != 0 && !g_serversList[i].players.empty())
-						ListView_SetItemCount(g_hWndListViewPlayers, g_serversList[i].info.players);
+					size_t i = nmitem->iItem;
+					if (i != -1 && g_serversList.size() > i)
+					{
+						if (g_serversList[i].players.empty())
+							ListView_DeleteAllItems(g_hWndListViewPlayers);
+						else
+							ListView_SetItemCount(g_hWndListViewPlayers, g_serversList[i].info.players);
 
-					std::wstring wstr;
+						std::wstring wstr;
 
-					ConvertCharset(g_serversList[i].info.serverName.c_str(), wstr);
-					SetDlgItemText(g_hWndGroupBox2, 1001, wstr.c_str()); // Server Name
+						ConvertCharset(g_serversList[i].info.serverName.c_str(), wstr);
+						SetDlgItemText(g_hWndGroupBox2, 1001, wstr.c_str()); // Server Name
 
-					wchar_t ipstr[22];
-					char *ip = (char *)&(g_serversList[i].address.ip);
-					swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], g_serversList[i].address.port);
-					SetDlgItemText(g_hWndGroupBox2, 1002, ipstr); // Server IP
+						wchar_t ipstr[22];
+						char *ip = (char *)&(g_serversList[i].address.ip);
+						swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], g_serversList[i].address.port);
+						SetDlgItemText(g_hWndGroupBox2, 1002, ipstr); // Server IP
 
-					wchar_t playersstr[12];
-					swprintf_s(playersstr, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
-					SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
+						wchar_t playersstr[12];
+						swprintf_s(playersstr, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
+						SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
 
-					wchar_t pingsstr[12];
-					uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
-					_itow_s(ping, pingsstr, 10);
-					SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
+						wchar_t pingsstr[12];
+						uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
+						_itow_s(ping, pingsstr, 10);
+						SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
 
-					ConvertCharset(g_serversList[i].info.gameMode.c_str(), wstr);
-					SetDlgItemText(g_hWndGroupBox2, 1005, wstr.c_str()); // Server Gamemode
+						ConvertCharset(g_serversList[i].info.gameMode.c_str(), wstr);
+						SetDlgItemText(g_hWndGroupBox2, 1005, wstr.c_str()); // Server Gamemode
 
-					SendQuery(g_serversList[i].address, 'i');
-					SendQuery(g_serversList[i].address, 'c');
-					g_serversList[i].lastPing[0] = GetTickCount();
-				}
-				else
-				{
-					ListView_DeleteAllItems(g_hWndListViewPlayers);
-					for (int i = 1001; i <= 1005; ++i)
-						SetDlgItemText(g_hWndGroupBox2, i, nullptr);
+						SendQuery(g_serversList[i].address, 'i');
+						SendQuery(g_serversList[i].address, 'c');
+						g_serversList[i].lastPing[0] = GetTickCount();
+					}
+					else
+					{
+						ListView_DeleteAllItems(g_hWndListViewPlayers);
+						for (int i = 1001; i <= 1005; ++i)
+							SetDlgItemText(g_hWndGroupBox2, i, nullptr);
+					}
 				}
 			}
 		}
