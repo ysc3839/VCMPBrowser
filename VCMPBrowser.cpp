@@ -247,7 +247,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (g_hWndListViewPlayers)
 		{
 			SetWindowTheme(g_hWndListViewPlayers, L"Explorer", nullptr);
-			ListView_SetExtendedListViewStyle(g_hWndListViewPlayers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+
+#ifndef LVS_EX_AUTOSIZECOLUMNS
+#define LVS_EX_AUTOSIZECOLUMNS 0x10000000 // Vista and later.
+#endif
+
+			ListView_SetExtendedListViewStyle(g_hWndListViewPlayers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_AUTOSIZECOLUMNS);
 
 			LVCOLUMN lvc;
 			lvc.mask = LVCF_WIDTH;
