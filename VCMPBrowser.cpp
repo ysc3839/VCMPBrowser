@@ -148,7 +148,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ListView_InsertColumn(g_hWndListViewServers, 0, &lvc);
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
-			lvc.cx = 240;
+			lvc.cx = 280;
 			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
 			ListView_InsertColumn(g_hWndListViewServers, 1, &lvc);
 
@@ -164,7 +164,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
 			ListView_InsertColumn(g_hWndListViewServers, 4, &lvc);
 
-			lvc.cx = 120;
+			lvc.cx = 140;
 			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
 			ListView_InsertColumn(g_hWndListViewServers, 5, &lvc);
 
@@ -185,7 +185,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ListView_InsertColumn(g_hWndListViewHistory, 0, &lvc);
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
-			lvc.cx = 220;
+			lvc.cx = 240;
 			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
 			ListView_InsertColumn(g_hWndListViewHistory, 1, &lvc);
 
@@ -201,7 +201,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
 			ListView_InsertColumn(g_hWndListViewHistory, 4, &lvc);
 
-			lvc.cx = 100;
+			lvc.cx = 120;
 			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
 			ListView_InsertColumn(g_hWndListViewHistory, 5, &lvc);
 
