@@ -621,11 +621,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
 						break;
 					}
+
+					char vcmpDll[MAX_PATH];
+					snprintf(vcmpDll, sizeof(vcmpDll), "%ls%s\\vcmp-game.dll", g_exePath, g_serversList[i].info.versionName);
+
+					if (_access(vcmpDll, 0) == -1)
+						if (!DownloadVCMPGame(g_serversList[i].info.versionName, g_browserSettings.gameUpdatePassword.c_str()))
+							break;
+
 					char ipstr[16];
 					char *ip = (char *)&(g_serversList[i].address.ip);
 					snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
-					char vcmpDll[MAX_PATH];
-					snprintf(vcmpDll, sizeof(vcmpDll), "%ls%s\\vcmp-game.dll", g_exePath, g_serversList[i].info.versionName);
+
 					LaunchVCMP(ipstr, g_serversList[i].address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
 				}
 			}

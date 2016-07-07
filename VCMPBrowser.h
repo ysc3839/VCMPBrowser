@@ -9,6 +9,7 @@
 #include <string>
 #include <thread>
 #include <array>
+#include <io.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

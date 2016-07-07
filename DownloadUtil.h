@@ -1,13 +1,14 @@
 #pragma once
 #include <direct.h>
 
-void DownloadVCMPGame(const char *version, const char *password)
+bool DownloadVCMPGame(const char *version, const char *password)
 {
 	struct downloadInfo {
 		const char *version;
 		const char *password;
 	};
 	downloadInfo dlInfo = { version, password };
+	static bool success = false;
 
 	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
 		static HANDLE hEvent;
@@ -25,7 +26,8 @@ void DownloadVCMPGame(const char *version, const char *password)
 				CURL *curl = curl_easy_init();
 				if (curl)
 				{
-					curl_easy_setopt(curl, CURLOPT_URL, "http://u04.maxorator.com/download");
+					std::string url = g_browserSettings.gameUpdateURL + "/download";
+					curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
 					SetCurrentDirectory(g_exePath);
 
@@ -136,8 +138,8 @@ void DownloadVCMPGame(const char *version, const char *password)
 
 									SzArEx_GetFileNameUtf16(&db, i, (UInt16 *)nameBuf);
 
-									OutputDebugStringW(nameBuf);
-									OutputDebugStringW(L"\n");
+									if (wcsstr(nameBuf, L"../") != nullptr)
+										continue;
 
 									for (size_t j = 0; nameBuf[j] != 0; j++)
 										if (nameBuf[j] == L'/')
@@ -183,6 +185,8 @@ void DownloadVCMPGame(const char *version, const char *password)
 								SzArEx_Free(&db, &szAlloc);
 							}
 							File_Close(&archiveStream.file);
+							if (res = SZ_OK)
+								success = true;
 						}
 					}
 					remove(fileName);
@@ -205,24 +209,36 @@ void DownloadVCMPGame(const char *version, const char *password)
 			CloseHandle(hEvent);
 			return (INT_PTR)TRUE;
 		case WM_PROGRESS:
-			SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETPOS, wParam, 0);
-			const wchar_t *unit = L"B/s";
-			float speed = (float)lParam;
-			if (speed > 1024)
+			if (wParam != -1)
 			{
-				speed = speed / 1024; // KB
-				unit = L"KB/s";
+				SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETPOS, wParam, 0);
+				const wchar_t *unit = L"B/s";
+				float speed = (float)lParam;
 				if (speed > 1024)
 				{
-					speed = speed / 1024; // MB
-					unit = L"MB/s";
+					speed = speed / 1024; // KB
+					unit = L"KB/s";
+					if (speed > 1024)
+					{
+						speed = speed / 1024; // MB
+						unit = L"MB/s";
+					}
 				}
+				wchar_t speedText[32];
+				swprintf_s(speedText, L"%.1f %s", speed, unit);
+				SetDlgItemText(hDlg, IDC_TIPSTATIC, speedText);
 			}
-			wchar_t speedText[32];
-			swprintf_s(speedText, L"%.1f %s", speed, unit);
-			SetDlgItemText(hDlg, IDC_TIPSTATIC, speedText);
+			else
+			{
+#define PBM_SETSTATE (WM_USER+16)
+#define PBST_NORMAL 1
+#define PBST_ERROR 2
+#define PBST_PAUSED 3
+				SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
+			}
 			break;
 		}
 		return (INT_PTR)FALSE;
 	}, (LPARAM)&dlInfo);
+	return success;
 }
