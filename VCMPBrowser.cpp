@@ -6,6 +6,7 @@ settings g_browserSettings;
 serverMasterList *g_serversMasterList = nullptr;
 int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
 serverList g_serversList;
+int g_currentServer = 0;
 
 HWND g_hMainWnd;
 
@@ -37,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-
+	
 	wcscpy_s(g_exePath, _wpgmptr);
 	auto c = wcsrchr(g_exePath, L'\\');
 	if (c) c[1] = L'\0';
@@ -54,6 +55,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
+
+	CrcGenerateTable();
 
 	MyRegisterClass(hInstance);
 
@@ -506,7 +509,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			else if (di->hdr.hwndFrom == g_hWndListViewPlayers)
 			{
-				size_t i = ListView_GetSelectionMark(g_hWndListViewServers);
+				size_t i = g_currentServer;
 				if (g_serversList.size() > i)
 				{
 					serverPlayers &players = g_serversList[i].players;
@@ -556,6 +559,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (nmitem->hdr.hwndFrom == g_hWndListViewServers)
 				{
 					size_t i = nmitem->iItem;
+					g_currentServer = i;
 					if (i != -1 && g_serversList.size() > i)
 					{
 						if (g_serversList[i].players.empty())
@@ -753,7 +757,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 												it->lastPing[1] = it->lastPing[0];
 												it->players = players;
 												auto i = it - g_serversList.begin();
-												if (i == ListView_GetSelectionMark(g_hWndListViewServers))
+												if (i == g_currentServer)
 													ListView_SetItemCount(g_hWndListViewPlayers, players.size());
 												break;
 											}

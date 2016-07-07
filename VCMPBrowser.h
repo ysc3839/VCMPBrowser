@@ -30,6 +30,11 @@
 #define CURL_STATICLIB
 #include "curl/curl.h"
 
+#include "7z/7z.h"
+#include "7z/7zAlloc.h"
+#include "7z/7zCrc.h"
+#include "7z/7zFile.h"
+
 #include "resource.h"
 
 struct serverAddress

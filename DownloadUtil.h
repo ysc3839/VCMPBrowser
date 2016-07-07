@@ -1,16 +1,13 @@
 #pragma once
+#include <direct.h>
 
 void DownloadVCMPGame(const char *version, const char *password)
 {
-	rapidjson::StringBuffer json;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(json);
-
-	writer.StartObject();
-	writer.Key("password");
-	writer.String(password);
-	writer.Key("version");
-	writer.String(version);
-	writer.EndObject();
+	struct downloadInfo {
+		const char *version;
+		const char *password;
+	};
+	downloadInfo dlInfo = { version, password };
 
 	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
 		static HANDLE hEvent;
@@ -18,11 +15,13 @@ void DownloadVCMPGame(const char *version, const char *password)
 		{
 		case WM_INITDIALOG:
 		{
-			char *json = (char *)lParam;
+			downloadInfo *dlInfo = (downloadInfo *)lParam;
+
 			hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 			if (!hEvent)
 				return (INT_PTR)FALSE;
-			std::thread thread([](HWND hWnd, char *json) {
+
+			std::thread thread([](HWND hWnd, downloadInfo *dlInfo) {
 				CURL *curl = curl_easy_init();
 				if (curl)
 				{
@@ -33,10 +32,12 @@ void DownloadVCMPGame(const char *version, const char *password)
 					char fileName[16];
 					srand(GetTickCount());
 					snprintf(fileName, sizeof(fileName), "tmp%.4X.7z", rand());
+
 					FILE *file = fopen(fileName, "wb");
 					if (file == nullptr)
 					{
 						curl_easy_cleanup(curl);
+						PostMessage(hWnd, WM_CLOSE, 0, 0);
 						return 0;
 					}
 					curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
@@ -69,25 +70,126 @@ void DownloadVCMPGame(const char *version, const char *password)
 						return 0;
 					});
 
+					rapidjson::StringBuffer json;
+					rapidjson::Writer<rapidjson::StringBuffer> writer(json);
+
+					writer.StartObject();
+					writer.Key("password");
+					writer.String(dlInfo->password);
+					writer.Key("version");
+					writer.String(dlInfo->version);
+					writer.EndObject();
+
 					struct curl_httppost* post = nullptr;
 					struct curl_httppost* last = nullptr;
-					curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json, CURLFORM_END);
+					curl_formadd(&post, &last, CURLFORM_COPYNAME, "json", CURLFORM_PTRCONTENTS, json.GetString(), CURLFORM_END);
 					curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
 
 					CURLcode ret = curl_easy_perform(curl);
-
+					curl_easy_cleanup(curl);
 					fclose(file);
 
-					if (ret == CURLE_ABORTED_BY_CALLBACK) // User cancel
+					if (ret == CURLE_OK)
 					{
-						remove(fileName);
-					}
+						CFileInStream archiveStream;
+						if (InFile_Open(&archiveStream.file, fileName) == 0)
+						{
+							CLookToRead lookStream;
+							FileInStream_CreateVTable(&archiveStream);
+							LookToRead_CreateVTable(&lookStream, False);
 
-					curl_easy_cleanup(curl);
+							lookStream.realStream = &archiveStream.s;
+							LookToRead_Init(&lookStream);
+
+							CSzArEx db;
+							SzArEx_Init(&db);
+
+							static ISzAlloc szAlloc = { SzAlloc, SzFree };
+
+							SRes res = SzArEx_Open(&db, &lookStream.s, &szAlloc, &szAlloc);
+							if (res == SZ_OK)
+							{
+								uint32_t blockIndex = 0xFFFFFFFF;
+								uint8_t *outBuffer = 0;
+								size_t outBufferSize = 0;
+
+								wchar_t *nameBuf = nullptr;
+								size_t buflen = 0;
+
+								_mkdir(dlInfo->version);
+								SetCurrentDirectoryA(dlInfo->version);
+
+								for (size_t i = 0; i < db.NumFiles; i++)
+								{
+									size_t namelen = SzArEx_GetFileNameUtf16(&db, i, NULL);
+									if (namelen > buflen)
+									{
+										free(nameBuf);
+										buflen = namelen;
+										nameBuf = (wchar_t *)malloc(buflen * sizeof(wchar_t));
+										if (nameBuf == nullptr)
+										{
+											res = SZ_ERROR_MEM;
+											break;
+										}
+									}
+
+									SzArEx_GetFileNameUtf16(&db, i, (UInt16 *)nameBuf);
+
+									OutputDebugStringW(nameBuf);
+									OutputDebugStringW(L"\n");
+
+									for (size_t j = 0; nameBuf[j] != 0; j++)
+										if (nameBuf[j] == L'/')
+										{
+											nameBuf[j] = 0;
+											_wmkdir(nameBuf);
+											nameBuf[j] = L'\\';
+										}
+
+									FILE *outFile;
+									bool isDir = SzArEx_IsDir(&db, i);
+									if (isDir)
+									{
+										_wmkdir(nameBuf);
+										continue;
+									}
+									else
+									{
+										size_t offset = 0;
+										size_t outSizeProcessed = 0;
+										res = SzArEx_Extract(&db, &lookStream.s, i, &blockIndex, &outBuffer, &outBufferSize, &offset, &outSizeProcessed, &szAlloc, &szAlloc);
+										if (res != SZ_OK)
+											break;
+
+										outFile = _wfopen(nameBuf, L"wb+");
+										if (outFile == nullptr)
+										{
+											res = SZ_ERROR_WRITE;
+											break;
+										}
+										if (fwrite(outBuffer + offset, 1, outSizeProcessed, outFile) != outSizeProcessed)
+										{
+											res = SZ_ERROR_WRITE;
+											break;
+										}
+										fclose(outFile);
+									}
+								}
+
+								SetCurrentDirectoryA("..");
+
+								free(nameBuf);
+								SzArEx_Free(&db, &szAlloc);
+							}
+							File_Close(&archiveStream.file);
+						}
+					}
+					remove(fileName);
 				}
 				PostMessage(hWnd, WM_CLOSE, 0, 0);
 				return 0;
-			}, hDlg, json);
+			}, hDlg, dlInfo);
 			thread.detach();
 		}
 		return (INT_PTR)TRUE;
@@ -122,5 +224,5 @@ void DownloadVCMPGame(const char *version, const char *password)
 			break;
 		}
 		return (INT_PTR)FALSE;
-	}, (LPARAM)json.GetString());
+	}, (LPARAM)&dlInfo);
 }
