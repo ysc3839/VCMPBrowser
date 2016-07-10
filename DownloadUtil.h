@@ -185,7 +185,7 @@ bool DownloadVCMPGame(const char *version, const char *password)
 								SzArEx_Free(&db, &szAlloc);
 							}
 							File_Close(&archiveStream.file);
-							if (res = SZ_OK)
+							if (res == SZ_OK)
 								success = true;
 						}
 					}
