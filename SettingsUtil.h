@@ -13,7 +13,7 @@ void SaveSettings()
 	writer.Key("language");
 	writer.Uint(g_browserSettings.language);
 
-	writer.Key("language");
+	writer.Key("codePage");
 	writer.Uint(g_browserSettings.codePage);
 
 	writer.Key("playerName");
