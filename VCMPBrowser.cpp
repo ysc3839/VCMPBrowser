@@ -29,7 +29,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-int ShowSettings();
+void ShowSettings();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -888,7 +888,7 @@ std::wstring GetTextW(HWND hWnd)
 	return std::wstring();
 }
 
-int ShowSettings()
+void ShowSettings()
 {
 	PROPSHEETPAGE psp[3];
 	psp[0].dwSize = sizeof(PROPSHEETPAGE);
@@ -968,9 +968,12 @@ int ShowSettings()
 			else if (HIWORD(wParam) == EN_CHANGE)
 				PropSheet_Changed(GetParent(hDlg), hDlg);
 			break;
-		case PSM_QUERYSIBLINGS: // Save settings
-			GetDlgItemTextA(hDlg, IDC_EDIT_PLAYERNAME, g_browserSettings.playerName, 24);
-			g_browserSettings.gamePath = GetTextW(GetDlgItem(hDlg, IDC_EDIT_GTAPATH));
+		case WM_NOTIFY:
+			if (((LPNMHDR)lParam)->code == PSN_APPLY) // Save settings
+			{
+				GetDlgItemTextA(hDlg, IDC_EDIT_PLAYERNAME, g_browserSettings.playerName, 24);
+				g_browserSettings.gamePath = GetTextW(GetDlgItem(hDlg, IDC_EDIT_GTAPATH));
+			}
 			break;
 		}
 		return (INT_PTR)FALSE;
@@ -1004,11 +1007,14 @@ int ShowSettings()
 			if (HIWORD(wParam) == EN_CHANGE || HIWORD(wParam) == CBN_SELCHANGE)
 				PropSheet_Changed(GetParent(hDlg), hDlg);
 			break;
-		case PSM_QUERYSIBLINGS: // Save settings
-			g_browserSettings.gameUpdateFreq = (updateFreq)ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_FREQ));
-			g_browserSettings.gameUpdateURL = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_URL));
-			g_browserSettings.gameUpdatePassword = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_PASS));
-			g_browserSettings.masterlistURL = GetText(GetDlgItem(hDlg, IDC_EDIT_MASTER_URL));
+		case WM_NOTIFY:
+			if (((LPNMHDR)lParam)->code == PSN_APPLY) // Save settings
+			{
+				g_browserSettings.gameUpdateFreq = (updateFreq)ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_FREQ));
+				g_browserSettings.gameUpdateURL = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_URL));
+				g_browserSettings.gameUpdatePassword = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_PASS));
+				g_browserSettings.masterlistURL = GetText(GetDlgItem(hDlg, IDC_EDIT_MASTER_URL));
+			}
 			break;
 		}
 		return (INT_PTR)FALSE;
@@ -1098,12 +1104,18 @@ int ShowSettings()
 			break;
 			}
 			break;
-		case PSM_QUERYSIBLINGS: // Save settings
-			g_browserSettings.language = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_LANGUAGE));
-			g_browserSettings.officialColor = officialColor;
-			size_t i = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_CHARSET));
-			if (codePages.size() > i)
-				g_browserSettings.codePage = codePages[i].first;
+		case WM_NOTIFY:
+			if (((LPNMHDR)lParam)->code == PSN_APPLY) // Save settings
+			{
+				g_browserSettings.language = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_LANGUAGE));
+				g_browserSettings.officialColor = officialColor;
+				size_t i = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_COM_CHARSET));
+				if (codePages.size() > i)
+					g_browserSettings.codePage = codePages[i].first;
+
+				InvalidateRect(g_hWndListViewServers, nullptr, FALSE);
+				InvalidateRect(g_hWndListViewHistory, nullptr, FALSE);
+			}
 			break;
 		}
 		return (INT_PTR)FALSE;
@@ -1111,28 +1123,14 @@ int ShowSettings()
 
 	PROPSHEETHEADER psh;
 	psh.dwSize = sizeof(PROPSHEETHEADER);
-	psh.dwFlags = PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP | PSH_USECALLBACK;
+	psh.dwFlags = PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP;
 	psh.hwndParent = g_hMainWnd;
 	psh.hInstance = g_hInst;
 	psh.pszCaption = LoadStr(L"Settings", IDS_SETTINGS);
 	psh.nPages = sizeof(psp) / sizeof(PROPSHEETPAGE);
 	psh.nStartPage = 0;
 	psh.ppsp = psp;
-	psh.pfnCallback = [](HWND hWndDlg, UINT uMsg, LPARAM lParam) -> int {
-		switch (uMsg)
-		{
-		case PSCB_BUTTONPRESSED:
-			if (lParam == PSBTN_APPLYNOW || lParam == PSBTN_OK)
-			{
-				PropSheet_QuerySiblings(hWndDlg, 0, 0);
-				SaveSettings();
-				InvalidateRect(g_hWndListViewServers, nullptr, FALSE);
-				InvalidateRect(g_hWndListViewHistory, nullptr, FALSE);
-			}
-			break;
-		}
-		return 0;
-	};
 
-	return PropertySheet(&psh);
+	PropertySheet(&psh);
+	SaveSettings();
 }
