@@ -1,8 +1,4 @@
 #pragma once
-#include <WinSDKVer.h>
-#define _WIN32_WINNT 0x0501 // XP
-#include <SDKDDKVer.h>
-
 #define _CRT_SECURE_NO_WARNINGS
 #include <vector>
 #include <utility>

@@ -230,10 +230,6 @@ bool DownloadVCMPGame(const char *version, const char *password)
 			}
 			else
 			{
-#define PBM_SETSTATE (WM_USER+16)
-#define PBST_NORMAL 1
-#define PBST_ERROR 2
-#define PBST_PAUSED 3
 				SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
 			}
 			break;
