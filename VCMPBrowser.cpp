@@ -38,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
-	
+
 	wcscpy_s(g_exePath, _wpgmptr);
 	auto c = wcsrchr(g_exePath, L'\\');
 	if (c) c[1] = L'\0';
@@ -136,15 +136,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		RECT rcClient;
 		GetClientRect(hWnd, &rcClient);
 
+		HIMAGELIST hListIml = ImageList_Create(16, 16, ILC_COLOR32, 0, 0);
+		if (hListIml)
+		{
+			ImageList_AddIcon(hListIml, LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_UNLOCK)));
+			ImageList_AddIcon(hListIml, LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_LOCK)));
+		}
+		else
+			return -1;
+
 		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - UI_PLAYERLIST_WIDTH - 4, rcClient.bottom - UI_SERVERINFO_HEIGHT - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewServers)
 		{
 			SetWindowTheme(g_hWndListViewServers, L"Explorer", nullptr);
 			ListView_SetExtendedListViewStyle(g_hWndListViewServers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 
+			ListView_SetImageList(g_hWndListViewServers, hListIml, LVSIL_SMALL);
+
 			LVCOLUMN lvc;
 			lvc.mask = LVCF_WIDTH;
-			lvc.cx = 30;
+			lvc.cx = 24;
 			ListView_InsertColumn(g_hWndListViewServers, 0, &lvc);
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
@@ -179,9 +190,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SetWindowTheme(g_hWndListViewHistory, L"Explorer", nullptr);
 			ListView_SetExtendedListViewStyle(g_hWndListViewHistory, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 
+			ListView_SetImageList(g_hWndListViewHistory, hListIml, LVSIL_SMALL);
+
 			LVCOLUMN lvc;
 			lvc.mask = LVCF_WIDTH;
-			lvc.cx = 30;
+			lvc.cx = 24;
 			ListView_InsertColumn(g_hWndListViewHistory, 0, &lvc);
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
@@ -461,7 +474,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (g_serversList.size() > i)
 				{
 					if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
-						di->item.iImage = 0;
+						di->item.iImage = g_serversList[i].info.isPassworded;
 
 					if (di->item.mask & LVIF_TEXT)
 					{

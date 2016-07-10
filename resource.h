@@ -12,6 +12,8 @@
 #define IDI_INTERNET                    132
 #define IDI_LAN                         133
 #define IDI_HISTORY                     134
+#define IDI_UNLOCK                      135
+#define IDI_LOCK                        136
 #define IDD_ABOUTBOX                    1100
 #define IDD_LOADING                     1200
 #define IDD_UPDATE                      1300
