@@ -10,7 +10,7 @@ int MessageBoxPrintError(HWND hWnd, LPCWSTR lpText, ...)
 	return MessageBox(hWnd, buffer, LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 }
 
-void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const char* password, const wchar_t* gtaExe, const char* vcmpDll)
+void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const char* password, const wchar_t* gtaExe, const wchar_t* vcmpDll)
 {
 	wchar_t commandLine[128];
 	if (password != nullptr)
@@ -31,7 +31,7 @@ void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 	if (CreateProcess(gtaExe, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, GTADriectory, &si, &pi))
 	{
 		// Alloc memory in GTA process.
-		size_t dllLength = strlen(vcmpDll) + 1;
+		size_t dllLength = (wcslen(vcmpDll) + 1) * sizeof(wchar_t);
 		LPVOID lpMem = VirtualAllocEx(pi.hProcess, NULL, dllLength, MEM_COMMIT, PAGE_READWRITE);
 		if (lpMem)
 		{
@@ -43,7 +43,7 @@ void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 				if (hKernel)
 				{
 					// Get LoadLibraryA address.
-					LPTHREAD_START_ROUTINE fnLoadLibraryA = (LPTHREAD_START_ROUTINE)GetProcAddress(hKernel, "LoadLibraryA");
+					LPTHREAD_START_ROUTINE fnLoadLibraryA = (LPTHREAD_START_ROUTINE)GetProcAddress(hKernel, "LoadLibraryW");
 					if (fnLoadLibraryA)
 					{
 						// Create remote thread in GTA process to inject VCMP dll.

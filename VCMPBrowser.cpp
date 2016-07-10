@@ -637,10 +637,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 					}
 
-					char vcmpDll[MAX_PATH];
-					snprintf(vcmpDll, sizeof(vcmpDll), "%ls%s\\vcmp-game.dll", g_exePath, g_serversList[i].info.versionName);
+					wchar_t vcmpDll[MAX_PATH];
+					swprintf(vcmpDll, MAX_PATH, L"%s%hs\\vcmp-game.dll", g_exePath, g_serversList[i].info.versionName);
 
-					if (_access(vcmpDll, 0) == -1)
+					if (_waccess(vcmpDll, 0) == -1)
 						if (!DownloadVCMPGame(g_serversList[i].info.versionName, g_browserSettings.gameUpdatePassword.c_str()))
 							break;
 
