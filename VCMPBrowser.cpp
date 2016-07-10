@@ -935,6 +935,34 @@ int ShowSettings()
 						SetWindowText(hWnd, gamePath);
 				}
 				break;
+				case IDC_BTN_CD:
+				{
+					HKEY hKey;
+					if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4B35F00C-E63D-40DC-9839-DF15A33EAC46}\\", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+					{
+						wchar_t path[MAX_PATH];
+						DWORD type, size = sizeof(path);
+						if (RegQueryValueEx(hKey, L"InstallLocation", nullptr, &type, (LPBYTE)path, &size) == ERROR_SUCCESS)
+						{
+							if (type == REG_SZ)
+							{
+								wcscat_s(path, L"\\gta-vc.exe");
+								SetDlgItemText(hDlg, IDC_EDIT_GTAPATH, path);
+							}
+						}
+					}
+					else if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\gta-vc.exe\\", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+					{
+						wchar_t path[MAX_PATH];
+						DWORD type, size = sizeof(path);
+						if (RegQueryValueEx(hKey, nullptr, nullptr, &type, (LPBYTE)path, &size) == ERROR_SUCCESS)
+						{
+							if (type == REG_SZ)
+								SetDlgItemText(hDlg, IDC_EDIT_GTAPATH, path);
+						}
+					}
+				}
+				break;
 				}
 			}
 			else if (HIWORD(wParam) == EN_CHANGE)
