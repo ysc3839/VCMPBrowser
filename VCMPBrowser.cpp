@@ -627,11 +627,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (strlen(g_browserSettings.playerName) == 0)
 					{
 						MessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+						ShowSettings();
 						break;
 					}
 					else if (g_browserSettings.gamePath.empty())
 					{
 						MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+						ShowSettings();
 						break;
 					}
 
