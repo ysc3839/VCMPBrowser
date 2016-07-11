@@ -6,6 +6,7 @@
 #include <thread>
 #include <array>
 #include <io.h>
+#include <algorithm>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

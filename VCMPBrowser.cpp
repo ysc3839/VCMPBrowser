@@ -7,6 +7,9 @@ serverMasterList *g_serversMasterList = nullptr;
 int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
 serverList g_serversList;
 int g_currentServer = 0;
+int g_sortColumn = 0;
+bool g_sortOrder = 0; // false=up, true=down
+std::vector<serverList::size_type> *g_serverFilter = nullptr;
 
 HWND g_hMainWnd;
 
@@ -148,6 +151,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - UI_PLAYERLIST_WIDTH - 4, rcClient.bottom - UI_SERVERINFO_HEIGHT - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewServers)
 		{
+			// Allow header double clicks
+			HWND hHeader = ListView_GetHeader(g_hWndListViewServers);
+			DWORD classStyle = GetClassLong(hHeader, GCL_STYLE);
+			classStyle ^= CS_DBLCLKS;
+			SetClassLong(hHeader, GCL_STYLE, classStyle);
+
 			SetWindowTheme(g_hWndListViewServers, L"Explorer", nullptr);
 			ListView_SetExtendedListViewStyle(g_hWndListViewServers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 
@@ -386,6 +395,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case 3: // Lan
 				ListView_DeleteAllItems(g_hWndListViewServers);
 				ListView_DeleteAllItems(g_hWndListViewPlayers);
+				if (g_serverFilter)
+				{
+					delete g_serverFilter;
+					g_serverFilter = nullptr;
+				}
 				g_serversList.clear();
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
 				ShowWindow(g_hWndListViewHistory, SW_HIDE);
@@ -467,6 +481,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (di->hdr.hwndFrom == g_hWndListViewServers)
 			{
 				size_t i = di->item.iItem;
+				if (g_serverFilter && g_serverFilter->size() > i)
+					i = (*g_serverFilter)[i];
 				if (g_serversList.size() > i)
 				{
 					if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
@@ -548,6 +564,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
 					COLORREF crText;
 					size_t i = nmcd->nmcd.dwItemSpec;
+					if (g_serverFilter && g_serverFilter->size() > i)
+						i = (*g_serverFilter)[i];
 					if (g_serversList.size() > i && g_serversList[i].isOfficial)
 						crText = g_browserSettings.officialColor;
 					else
@@ -568,6 +586,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (nmitem->hdr.hwndFrom == g_hWndListViewServers)
 				{
 					size_t i = nmitem->iItem;
+					if (g_serverFilter && g_serverFilter->size() > i)
+						i = (*g_serverFilter)[i];
 					g_currentServer = i;
 					if (i != -1 && g_serversList.size() > i)
 					{
@@ -618,6 +638,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (nmia->hdr.hwndFrom == g_hWndListViewServers)
 			{
 				size_t i = nmia->iItem;
+				if (g_serverFilter && g_serverFilter->size() > i)
+					i = (*g_serverFilter)[i];
 				if (i != -1 && g_serversList.size() > i)
 				{
 					if (strlen(g_browserSettings.playerName) == 0)
@@ -646,6 +668,108 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					LaunchVCMP(ipstr, g_serversList[i].address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
 				}
+			}
+		}
+		break;
+		case LVN_COLUMNCLICK:
+		{
+			LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
+			if (pnmv->hdr.hwndFrom == g_hWndListViewServers)
+			{
+				HWND hHeader = ListView_GetHeader(pnmv->hdr.hwndFrom);
+				HDITEM item;
+				item.mask = HDI_FORMAT;
+				if (pnmv->iSubItem != 0)
+				{
+					Header_GetItem(hHeader, pnmv->iSubItem, &item);
+					if (pnmv->iSubItem == g_sortColumn)
+					{
+						if (g_sortOrder)
+						{
+							item.fmt &= ~HDF_SORTDOWN;
+							item.fmt |= HDF_SORTUP;
+						}
+						else
+						{
+							item.fmt &= ~HDF_SORTUP;
+							item.fmt |= HDF_SORTDOWN;
+						}
+						g_sortOrder = !g_sortOrder;
+						Header_SetItem(hHeader, pnmv->iSubItem, &item);
+					}
+					else
+					{
+						item.fmt &= ~HDF_SORTDOWN;
+						item.fmt |= HDF_SORTUP;
+						Header_SetItem(hHeader, pnmv->iSubItem, &item);
+
+						Header_GetItem(hHeader, g_sortColumn, &item);
+						item.fmt &= ~HDF_SORTUP;
+						item.fmt &= ~HDF_SORTDOWN;
+						Header_SetItem(hHeader, g_sortColumn, &item);
+
+						g_sortOrder = false; // up
+						g_sortColumn = pnmv->iSubItem;
+					}
+
+					if (!g_serverFilter)
+						delete g_serverFilter;
+
+					g_serverFilter = new std::vector<serverList::size_type>;
+					for (serverList::size_type i = 0; i < g_serversList.size(); ++i)
+						g_serverFilter->push_back(i);
+
+					typedef bool(*compfunc)(size_t, size_t);
+					compfunc compFunc = nullptr;
+
+					switch (g_sortColumn)
+					{
+					case 1: // Server name
+						compFunc = [](serverList::size_type a, serverList::size_type b) { return g_serversList[a].info.serverName < g_serversList[b].info.serverName; };
+						break;
+					case 2: // Ping
+						compFunc = [](serverList::size_type a, serverList::size_type b) {
+							auto a_ = g_serversList[a];
+							auto b_ = g_serversList[b];
+							auto ping_a = a_.lastRecv - a_.lastPing[1];
+							auto ping_b = b_.lastRecv - b_.lastPing[1];
+							return ping_a < ping_b;
+						};
+						break;
+					case 3: // Players
+						compFunc = [](serverList::size_type a, serverList::size_type b) { return g_serversList[a].info.players < g_serversList[b].info.players; };
+						break;
+					case 4: // Version
+						compFunc = [](serverList::size_type a, serverList::size_type b) { return strncmp(g_serversList[a].info.versionName, g_serversList[b].info.versionName, 12) < 0; };
+						break;
+					case 5: // Gamemode
+						compFunc = [](serverList::size_type a, serverList::size_type b) { return g_serversList[a].info.gameMode < g_serversList[b].info.gameMode; };
+						break;
+					case 6: // Map name
+						compFunc = [](serverList::size_type a, serverList::size_type b) { return g_serversList[a].info.mapName < g_serversList[b].info.mapName; };
+						break;
+					}
+
+					if (compFunc)
+						if (g_sortOrder)
+							std::sort(g_serverFilter->rbegin(), g_serverFilter->rend(), compFunc);
+						else
+							std::sort(g_serverFilter->begin(), g_serverFilter->end(), compFunc);
+				}
+				else if (g_serverFilter)
+				{
+					delete g_serverFilter;
+					g_serverFilter = nullptr;
+
+					Header_GetItem(hHeader, g_sortColumn, &item);
+					item.fmt &= ~HDF_SORTUP;
+					item.fmt &= ~HDF_SORTDOWN;
+					Header_SetItem(hHeader, g_sortColumn, &item);
+
+					g_sortOrder = false;
+					g_sortColumn = 0;
+				}
+				InvalidateRect(g_hWndListViewServers, nullptr, FALSE);
 			}
 		}
 		break;
