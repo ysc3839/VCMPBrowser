@@ -1,0 +1,10 @@
+#pragma code_page(65001)
+
+#include "en-US.rc"
+#include "ar-AR.rc"
+#include "es-ES.rc"
+#include "nl-NL.rc"
+#include "pl-PL.rc"
+#include "pt-BR.rc"
+#include "tr-TR.rc"
+#include "zh-CN.rc"

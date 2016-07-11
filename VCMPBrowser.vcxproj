@@ -104,7 +104,6 @@
     <ClCompile Include="VCMPBrowser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="langs\en-US.rc" />
     <ResourceCompile Include="VCMPBrowser.rc" />
   </ItemGroup>
   <ItemGroup>
