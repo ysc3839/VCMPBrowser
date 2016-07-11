@@ -182,7 +182,7 @@ BEGIN
     IDS_SERVERPING          "Server Ping:"
     IDS_SERVERGAMEMODE      "Server Gamemode:"
     IDS_LAN                 "Lan"
-    IDS_MASTERLISTFAILED    "Can't get information from master list.\n%s"
+    IDS_MASTERLISTFAILED    "Can't get information from master list.\n%hs"
     IDS_ERROR               "Error"
     IDS_MASTERLISTDATA      "Can't parse master list data."
     IDS_SET_GAME            "Game"
