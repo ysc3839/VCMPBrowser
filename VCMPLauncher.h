@@ -43,11 +43,11 @@ void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 				if (hKernel)
 				{
 					// Get LoadLibraryW address.
-					LPTHREAD_START_ROUTINE fnLoadLibraryA = (LPTHREAD_START_ROUTINE)GetProcAddress(hKernel, "LoadLibraryW");
-					if (fnLoadLibraryA)
+					LPTHREAD_START_ROUTINE fnLoadLibraryW = (LPTHREAD_START_ROUTINE)GetProcAddress(hKernel, "LoadLibraryW");
+					if (fnLoadLibraryW)
 					{
 						// Create remote thread in GTA process to inject VCMP dll.
-						HANDLE hInjectThread = CreateRemoteThread(pi.hProcess, nullptr, 0, fnLoadLibraryA, lpMem, 0, nullptr);
+						HANDLE hInjectThread = CreateRemoteThread(pi.hProcess, nullptr, 0, fnLoadLibraryW, lpMem, 0, nullptr);
 						if (hInjectThread)
 						{
 							// Wiat for the inject thread.
@@ -127,12 +127,12 @@ void LaunchSteamVCMP(const char* IP, uint16_t port, const char* playerName, cons
 			if (hKernel)
 			{
 				// Get LoadLibraryW address.
-				FARPROC fnLoadLibraryA = GetProcAddress(hKernel, "LoadLibraryW");
-				if (fnLoadLibraryA)
+				FARPROC fnLoadLibraryW = GetProcAddress(hKernel, "LoadLibraryW");
+				if (fnLoadLibraryW)
 				{
 					uint8_t code[19];
 					code[0] = 0x68; *(int*)&code[1] = (int)lpMem + sizeof(code);		// push lpMem + 19
-					code[5] = 0xE8; *(int*)&code[6] = (int)fnLoadLibraryA - (int)lpMem - 10;	// call kernel32.LoadLibraryW
+					code[5] = 0xE8; *(int*)&code[6] = (int)fnLoadLibraryW - (int)lpMem - 10;	// call kernel32.LoadLibraryW
 					code[10] = 0x58; // pop eax ; get the OEP
 					code[11] = 0x5D; // pop ebp
 					code[12] = 0x5F; // pop edi
