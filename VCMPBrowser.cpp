@@ -14,11 +14,11 @@ std::vector<serverList::size_type> *g_serverFilter = nullptr;
 HWND g_hMainWnd;
 
 #include "i18n.h"
-#include "DownloadUtil.h"
 #include "SettingsUtil.h"
 #include "MasterListUtil.h"
 #include "ServerQueryUtil.h"
 #include "VCMPLauncher.h"
+#include "DownloadUtil.h"
 
 HWND g_hWndTab;
 HWND g_hWndListViewServers;
@@ -60,7 +60,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		return FALSE;
 
 	CrcGenerateTable();
-
+	
 	MyRegisterClass(hInstance);
 
 	if (!InitInstance(hInstance, nCmdShow))
@@ -374,7 +374,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case IDM_EXIT:
-			DestroyWindow(hWnd);
+		{
+			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Checking browser update...");
+			std::thread update(CheckBrowserUpdate);
+			update.detach();
+			//DestroyWindow(hWnd);
+		}
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -918,6 +923,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	break;
+	case WM_UPDATE:
+		if (wParam)
+		{
+			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Found new browser version!");
+			UpdateBrowser();
+		}
+		else
+			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Failed to check browser update!");
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

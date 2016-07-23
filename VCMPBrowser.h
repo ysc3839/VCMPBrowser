@@ -103,7 +103,10 @@ struct settings
 
 #define WM_SOCKET WM_USER+1
 #define WM_PROGRESS WM_USER+1 // wParam=progress, lParam=speed
+#define WM_UPDATE WM_USER+2 // wParam=result(bool)
 
 // UI sizes
 #define UI_PLAYERLIST_WIDTH 200
 #define UI_SERVERINFO_HEIGHT 140
+
+#define VERSION "1.0-preview4##"
