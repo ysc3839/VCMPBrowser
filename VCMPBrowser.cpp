@@ -374,13 +374,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		case ID_TOOLS_CHECKUPDATE:
 		{
 			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Checking browser update...");
 			std::thread update(CheckBrowserUpdate);
 			update.detach();
-			//DestroyWindow(hWnd);
 		}
-			break;
+		break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
