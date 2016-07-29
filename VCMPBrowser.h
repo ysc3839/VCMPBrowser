@@ -109,4 +109,4 @@ struct settings
 #define UI_PLAYERLIST_WIDTH 200
 #define UI_SERVERINFO_HEIGHT 140
 
-#define VERSION "1.0-preview4##"
+#define VERSION "1.0-preview4"

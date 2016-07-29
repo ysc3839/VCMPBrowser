@@ -9,7 +9,8 @@ const LANGID languages[] = {
 	MAKELANGID(LANG_POLISH, SUBLANG_DEFAULT),
 	MAKELANGID(LANG_PORTUGUESE, SUBLANG_PORTUGUESE_BRAZILIAN),
 	MAKELANGID(LANG_TURKISH, SUBLANG_DEFAULT),
-	MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED)
+	MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED),
+	MAKELANGID(LANG_BENGALI, SUBLANG_BENGALI_BANGLADESH)
 };
 
 const wchar_t *languageNames[] = {
@@ -21,7 +22,8 @@ const wchar_t *languageNames[] = {
 	L"Polish",
 	L"Portuguese (Brazil)",
 	L"Turkish",
-	L"Chinese (Simplified)"
+	L"Chinese (Simplified)",
+	L"Bengali"
 };
 
 inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }

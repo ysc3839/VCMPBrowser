@@ -60,7 +60,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		return FALSE;
 
 	CrcGenerateTable();
-	
+
 	MyRegisterClass(hInstance);
 
 	if (!InitInstance(hInstance, nCmdShow))
@@ -378,7 +378,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_TOOLS_CHECKUPDATE:
 		{
-			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Checking browser update...");
+			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Checking browser update...", IDS_CHECKINGUPDATE));
 			std::thread update(CheckBrowserUpdate);
 			update.detach();
 		}
@@ -928,11 +928,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_UPDATE:
 		if (wParam)
 		{
-			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Found new browser version!");
+			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Found new browser version!", IDS_FOUNDUPDATE));
 			UpdateBrowser();
 		}
 		else
-			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Failed to check browser update!");
+			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Failed to check browser update!", IDS_CHECKFAILED));
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
