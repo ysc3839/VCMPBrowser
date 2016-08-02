@@ -12,14 +12,6 @@ bool g_sortOrder = 0; // false=up, true=down
 std::vector<serverList::size_type> *g_serverFilter = nullptr;
 
 HWND g_hMainWnd;
-
-#include "i18n.h"
-#include "SettingsUtil.h"
-#include "MasterListUtil.h"
-#include "ServerQueryUtil.h"
-#include "VCMPLauncher.h"
-#include "DownloadUtil.h"
-
 HWND g_hWndTab;
 HWND g_hWndListViewServers;
 HWND g_hWndListViewHistory;
@@ -27,6 +19,13 @@ HWND g_hWndGroupBox1;
 HWND g_hWndListViewPlayers;
 HWND g_hWndGroupBox2;
 HWND g_hWndStatusBar;
+
+#include "i18n.h"
+#include "SettingsUtil.h"
+#include "MasterListUtil.h"
+#include "ServerQueryUtil.h"
+#include "VCMPLauncher.h"
+#include "DownloadUtil.h"
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);

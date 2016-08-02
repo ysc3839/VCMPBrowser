@@ -307,6 +307,8 @@ void UpdateBrowser()
 {
 	if (g_updateInfo.version != VERSION) // Version not equal
 	{
+		SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Found new browser version!", IDS_FOUNDUPDATE));
+
 		wchar_t message[512];
 		swprintf_s(message, L"A new version of VCMPBrowser is available!\nVersion: %hs\nRelease Date: %hs\nDo you want to update?", g_updateInfo.version.c_str(), g_updateInfo.date.c_str());
 
@@ -380,4 +382,6 @@ void UpdateBrowser()
 			return 0;
 		});
 	}
+	else
+		SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"No update found.", IDS_NOUPDATE));
 }
