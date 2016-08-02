@@ -699,8 +699,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 					}
 
+					bool isSteam = false;
+
+					const wchar_t *name = wcsrchr(g_browserSettings.gamePath.c_str(), L'\\');
+					if (wcsncmp(++name, L"testapp.exe", 11) == 0)
+						isSteam = true;
+
 					wchar_t vcmpDll[MAX_PATH];
-					swprintf(vcmpDll, MAX_PATH, L"%s%hs\\vcmp-game.dll", g_exePath, g_serversList[i].info.versionName);
+					swprintf(vcmpDll, MAX_PATH, L"%s%hs\\%s", g_exePath, g_serversList[i].info.versionName, isSteam ? L"vcmp-steam.dll" : L"vcmp-game.dll");
 
 					if (_waccess(vcmpDll, 0) == -1)
 						if (!DownloadVCMPGame(g_serversList[i].info.versionName, g_browserSettings.gameUpdatePassword.c_str()))
@@ -728,7 +734,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					char *ip = (char *)&(address.ip);
 					snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
 
-					LaunchVCMP(ipstr, address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
+					if (isSteam)
+						LaunchSteamVCMP(ipstr, address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
+					else
+						LaunchVCMP(ipstr, address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
 				}
 			}
 		}
