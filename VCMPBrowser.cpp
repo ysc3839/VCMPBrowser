@@ -10,6 +10,7 @@ int g_currentServer = 0;
 int g_sortColumn = 0;
 bool g_sortOrder = 0; // false=up, true=down
 std::vector<serverList::size_type> *g_serverFilter = nullptr;
+serverList g_historyList;
 
 HWND g_hMainWnd;
 HWND g_hWndTab;
@@ -114,6 +115,51 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	UpdateWindow(g_hMainWnd);
 
 	return TRUE;
+}
+
+void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info)
+{
+	if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
+		di->item.iImage = info.info.isPassworded;
+
+	if (di->item.mask & LVIF_TEXT)
+	{
+		switch (di->item.iSubItem)
+		{
+		case 0: // Icon
+			break;
+		case 1: // Server Name
+			if (di->item.cchTextMax > 0 && di->item.pszText)
+			{
+				MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+			}
+			break;
+		case 2: // Ping
+		{
+			uint32_t ping = info.lastRecv - info.lastPing[1];
+			_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
+		}
+		break;
+		case 3: // Players
+			swprintf_s(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", info.info.players, info.info.maxPlayers);
+			break;
+		case 4: // Version
+		{
+			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.versionName, -1, di->item.pszText, di->item.cchTextMax);
+		}
+		break;
+		case 5: // Gamemode
+		{
+			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+		}
+		break;
+		case 6: // Map name
+		{
+			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
+		}
+		break;
+		}
+	}
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -490,54 +536,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				size_t i = di->item.iItem;
 				if (g_serverFilter && g_serverFilter->size() > i)
 					i = (*g_serverFilter)[i];
+
 				if (g_serversList.size() > i)
 				{
-					if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
-						di->item.iImage = g_serversList[i].info.isPassworded;
-
-					if (di->item.mask & LVIF_TEXT)
-					{
-						switch (di->item.iSubItem)
-						{
-						case 0: // Icon
-							break;
-						case 1: // Server Name
-							if (di->item.cchTextMax > 0 && di->item.pszText)
-							{
-								MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
-							}
-							break;
-						case 2: // Ping
-						{
-							uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
-							_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
-						}
-						break;
-						case 3: // Players
-							swprintf_s(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
-							break;
-						case 4: // Version
-						{
-							MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.versionName, -1, di->item.pszText, di->item.cchTextMax);
-						}
-						break;
-						case 5: // Gamemode
-						{
-							MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
-						}
-						break;
-						case 6: // Map name
-						{
-							MultiByteToWideChar(g_browserSettings.codePage, 0, g_serversList[i].info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
-						}
-						break;
-						}
-					}
+					serverAllInfo info = g_serversList[i];
+					ProcessDispInfo(di, info);
 				}
 			}
-			else if (di->hdr.hwndFrom == g_hWndListViewHistory) // FIXME
+			else if (di->hdr.hwndFrom == g_hWndListViewHistory)
 			{
+				size_t i = di->item.iItem;
+				if (g_serverFilter && g_serverFilter->size() > i)
+					i = (*g_serverFilter)[i];
 
+				auto it = g_historyList.crbegin() + i;
+				if (it != g_historyList.crend())
+					ProcessDispInfo(di, *it);
 			}
 			else if (di->hdr.hwndFrom == g_hWndListViewPlayers)
 			{
@@ -574,6 +588,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (g_serverFilter && g_serverFilter->size() > i)
 						i = (*g_serverFilter)[i];
 					if (g_serversList.size() > i && g_serversList[i].isOfficial)
+						crText = g_browserSettings.officialColor;
+					else
+						crText = 0;
+
+					nmcd->clrText = crText;
+					return CDRF_DODEFAULT;
+				}
+				}
+			}
+			else if (nmcd->nmcd.hdr.hwndFrom == g_hWndListViewHistory)
+			{
+				switch (nmcd->nmcd.dwDrawStage)
+				{
+				case CDDS_PREPAINT:
+					return CDRF_NOTIFYITEMDRAW;
+				case CDDS_ITEMPREPAINT:
+				{
+					COLORREF crText;
+					size_t i = nmcd->nmcd.dwItemSpec;
+					if (g_serverFilter && g_serverFilter->size() > i)
+						i = (*g_serverFilter)[i];
+					auto it = g_historyList.crbegin() + i;
+					if (it != g_historyList.crend() && it->isOfficial)
 						crText = g_browserSettings.officialColor;
 					else
 						crText = 0;
@@ -669,11 +706,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						if (!DownloadVCMPGame(g_serversList[i].info.versionName, g_browserSettings.gameUpdatePassword.c_str()))
 							break;
 
+					auto address = g_serversList[i].address;
+					size_t index = -1;
+					for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
+					{
+						if (it->address == address)
+						{
+							index = it - g_historyList.begin();
+							break;
+						}
+					}
+
+					if (index != -1)
+						g_historyList.erase(g_historyList.begin() + index);
+
+					g_historyList.push_back(g_serversList[i]);
+
+					ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
+
 					char ipstr[16];
-					char *ip = (char *)&(g_serversList[i].address.ip);
+					char *ip = (char *)&(address.ip);
 					snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
 
-					LaunchVCMP(ipstr, g_serversList[i].address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
+					LaunchVCMP(ipstr, address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
 				}
 			}
 		}

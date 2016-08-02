@@ -37,6 +37,16 @@
 
 struct serverAddress
 {
+	bool operator==(const serverAddress &rhs)
+	{
+		return (this->ip == rhs.ip && this->port == rhs.port);
+	}
+
+	bool operator!=(const serverAddress &rhs)
+	{
+		return !(*this == rhs);
+	}
+
 	uint32_t ip;
 	uint16_t port;
 };
