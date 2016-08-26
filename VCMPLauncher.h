@@ -1,5 +1,7 @@
 #pragma once
 
+void ShowSettings();
+
 int MessageBoxPrintError(HWND hWnd, LPCWSTR lpText, ...)
 {
 	va_list argList;
@@ -208,4 +210,42 @@ void LaunchSteamVCMP(const char* IP, uint16_t port, const char* playerName, cons
 	}
 	else
 		MessageBoxPrintError(g_hMainWnd, LoadStr(L"CreateProcess failed! (%u)", IDS_CREATEPROCESSFAIL), GetLastError());
+}
+
+void LaunchGame(serverAllInfo &serverInfo)
+{
+	if (strlen(g_browserSettings.playerName) == 0)
+	{
+		MessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+		ShowSettings();
+		return;
+	}
+	else if (g_browserSettings.gamePath.empty())
+	{
+		MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+		ShowSettings();
+		return;
+	}
+
+	bool isSteam = false;
+
+	const wchar_t *name = wcsrchr(g_browserSettings.gamePath.c_str(), L'\\');
+	if (wcsncmp(++name, L"testapp.exe", 11) == 0)
+		isSteam = true;
+
+	wchar_t vcmpDll[MAX_PATH];
+	swprintf(vcmpDll, MAX_PATH, L"%s%hs\\%s", g_exePath, serverInfo.info.versionName, isSteam ? L"vcmp-steam.dll" : L"vcmp-game.dll");
+
+	if (_waccess(vcmpDll, 0) == -1)
+		if (!DownloadVCMPGame(serverInfo.info.versionName, g_browserSettings.gameUpdatePassword.c_str()))
+			return;
+
+	char ipstr[16];
+	char *ip = (char *)&(serverInfo.address.ip);
+	snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
+
+	if (isSteam)
+		LaunchSteamVCMP(ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
+	else
+		LaunchVCMP(ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
 }

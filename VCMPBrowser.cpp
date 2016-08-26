@@ -25,8 +25,8 @@ HWND g_hWndStatusBar;
 #include "SettingsUtil.h"
 #include "MasterListUtil.h"
 #include "ServerQueryUtil.h"
-#include "VCMPLauncher.h"
 #include "DownloadUtil.h"
+#include "VCMPLauncher.h"
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -686,32 +686,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					i = (*g_serverFilter)[i];
 				if (i != -1 && g_serversList.size() > i)
 				{
-					if (strlen(g_browserSettings.playerName) == 0)
-					{
-						MessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
-						ShowSettings();
-						break;
-					}
-					else if (g_browserSettings.gamePath.empty())
-					{
-						MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
-						ShowSettings();
-						break;
-					}
-
-					bool isSteam = false;
-
-					const wchar_t *name = wcsrchr(g_browserSettings.gamePath.c_str(), L'\\');
-					if (wcsncmp(++name, L"testapp.exe", 11) == 0)
-						isSteam = true;
-
-					wchar_t vcmpDll[MAX_PATH];
-					swprintf(vcmpDll, MAX_PATH, L"%s%hs\\%s", g_exePath, g_serversList[i].info.versionName, isSteam ? L"vcmp-steam.dll" : L"vcmp-game.dll");
-
-					if (_waccess(vcmpDll, 0) == -1)
-						if (!DownloadVCMPGame(g_serversList[i].info.versionName, g_browserSettings.gameUpdatePassword.c_str()))
-							break;
-
 					auto address = g_serversList[i].address;
 					size_t index = -1;
 					for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
@@ -730,14 +704,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
 
-					char ipstr[16];
-					char *ip = (char *)&(address.ip);
-					snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
+					LaunchGame(g_serversList[i]);
+				}
+			}
+			else if (nmia->hdr.hwndFrom == g_hWndListViewHistory)
+			{
+				size_t i = nmia->iItem;
+				if (g_serverFilter && g_serverFilter->size() > i)
+					i = (*g_serverFilter)[i];
+				auto it = g_historyList.crbegin() + i;
+				if (it != g_historyList.crend())
+				{
+					serverAllInfo serverInfo = *it;
+					g_historyList.erase(--(it.base()));
+					g_historyList.push_back(serverInfo);
 
-					if (isSteam)
-						LaunchSteamVCMP(ipstr, address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
-					else
-						LaunchVCMP(ipstr, address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
+					ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
+
+					LaunchGame(serverInfo);
 				}
 			}
 		}
