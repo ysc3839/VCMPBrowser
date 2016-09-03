@@ -78,6 +78,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	WSACleanup();
 
+	SaveHistory();
+
 	return (int)msg.wParam;
 }
 
@@ -275,6 +277,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			lvc.cx = 160;
 			lvc.pszText = LoadStr(L"Last Played", IDS_LASTPLAYED);
 			ListView_InsertColumn(g_hWndListViewHistory, 6, &lvc);
+
+			LoadHistory();
+
+			ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
 		}
 
 		g_hWndTab = CreateWindow(WC_TABCONTROL, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 0, 0, rcClient.right - UI_PLAYERLIST_WIDTH, rcClient.bottom - UI_SERVERINFO_HEIGHT, hWnd, nullptr, g_hInst, nullptr);
@@ -524,6 +530,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case 4: // History
 				ShowWindow(g_hWndListViewHistory, SW_SHOW);
 				ShowWindow(g_hWndListViewServers, SW_HIDE);
+				for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
+				{
+					SendQuery(it->address, 'i');
+					it->lastPing[0] = it->lastPing[1] = GetTickCount();
+				}
 				break;
 			}
 		}
@@ -876,19 +887,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						char opcode = recvBuf[10];
 						if (opcode == 'i' || opcode == 'c')
 						{
-							uint32_t ip = recvAddr.sin_addr.s_addr;
-							uint16_t port = ntohs(recvAddr.sin_port);
+							serverAddress address = { recvAddr.sin_addr.s_addr, ntohs(recvAddr.sin_port) };
 
 							bool found = false;
 							serverMasterListInfo masterInfo;
 							if (g_currentTab == 1 || g_currentTab == 2)
 							{
-								for (auto it = g_serversMasterList->begin(); it != g_serversMasterList->end(); ++it)
+								for (auto server : *g_serversMasterList)
 								{
-									if (it->address.ip == ip && it->address.port == port)
+									if (server.address == address)
 									{
 										found = true;
-										masterInfo = *it;
+										masterInfo = server;
 										break;
 									}
 								}
@@ -896,9 +906,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							else if (g_currentTab == 3) // Lan
 							{
 								found = true;
-								masterInfo.address = { ip, port };
+								masterInfo.address = address;
 								masterInfo.isOfficial = false;
 								masterInfo.lastPing = lanLastPing;
+							}
+							else if (g_currentTab == 4) // History
+							{
+								for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
+								{
+									if (it->address == address)
+									{
+										it->lastRecv = GetTickCount();
+										it->lastPing[1] = it->lastPing[0];
+										switch (opcode)
+										{
+										case 'i':
+										{
+											serverInfo info;
+											if (GetServerInfo(recvBuf, recvLen, info))
+												it->info = info;
+										}
+										break;
+										case 'c':
+										{
+											serverPlayers players;
+											if (GetServerPlayers(recvBuf, recvLen, players))
+												it->players = players;
+										}
+										break;
+										}
+										auto i = it - g_historyList.begin();
+										i = g_historyList.size() - i - 1;
+										ListView_Update(g_hWndListViewHistory, i);
+										break;
+									}
+								}
 							}
 
 							if (found)
@@ -913,7 +955,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 										bool inList = false;
 										for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
 										{
-											if (it->address.ip == ip && it->address.port == port)
+											if (it->address == address)
 											{
 												inList = true;
 												it->lastRecv = GetTickCount();
@@ -948,7 +990,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 									{
 										for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
 										{
-											if (it->address.ip == ip && it->address.port == port)
+											if (it->address == address)
 											{
 												it->lastRecv = GetTickCount();
 												it->lastPing[1] = it->lastPing[0];

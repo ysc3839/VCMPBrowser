@@ -82,7 +82,7 @@ struct serverAllInfo
 	serverPlayers players;
 	bool isOfficial;
 	uint32_t lastPing[2];
-	uint32_t lastRecv;
+	uint32_t lastRecv; // == 0 offline
 };
 
 typedef std::vector<serverMasterListInfo> serverMasterList;

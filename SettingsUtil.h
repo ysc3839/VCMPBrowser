@@ -148,3 +148,85 @@ void LoadSettings()
 		fclose(file);
 	}
 }
+
+void SaveHistory()
+{
+	rapidjson::StringBuffer json;
+	rapidjson::Writer<rapidjson::StringBuffer> writer(json);
+
+	writer.StartArray();
+
+	for (serverAllInfo server : g_historyList)
+	{
+		writer.StartObject();
+
+		char ipstr[16];
+		char *ip = (char *)&(server.address.ip);
+		snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
+
+		writer.Key("ip");
+		writer.String(ipstr);
+
+		writer.Key("port");
+		writer.Uint(server.address.port);
+
+		writer.Key("serverName");
+		writer.String(server.info.serverName);
+
+		writer.Key("isOfficial");
+		writer.Bool(server.isOfficial);
+
+		writer.EndObject();
+	}
+
+	writer.EndArray();
+
+	SetCurrentDirectory(g_exePath);
+
+	FILE *file = _wfopen(L"history.json", L"wb");
+	if (file != nullptr)
+	{
+		fwrite(json.GetString(), sizeof(char), json.GetSize(), file);
+		fclose(file);
+	}
+}
+
+void LoadHistory()
+{
+	FILE *file = _wfopen(L"history.json", L"rb");
+	if (file != nullptr)
+	{
+		do {
+			char readBuffer[512];
+			rapidjson::FileReadStream is(file, readBuffer, sizeof(readBuffer));
+
+			rapidjson::Document dom;
+
+			if (dom.ParseStream(is).HasParseError() || !dom.IsArray())
+				break;
+
+			for (auto it = dom.Begin(); it != dom.End(); ++it)
+			{
+				if (it->IsObject())
+				{
+					serverAllInfo server = {};
+					auto ip = it->FindMember("ip");
+					auto port = it->FindMember("port");
+					auto serverName = it->FindMember("serverName");
+					auto isOfficial = it->FindMember("isOfficial");
+					if (ip != it->MemberEnd() && port != it->MemberEnd() && serverName != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && serverName->value.IsString() && isOfficial->value.IsBool())
+					{
+						server.address.ip = inet_addr(ip->value.GetString());
+						server.address.port = (uint16_t)port->value.GetUint();
+						server.info.serverName = serverName->value.GetString();
+						server.isOfficial = isOfficial->value.GetBool();
+						g_historyList.push_back(server);
+					}
+				}
+				else
+					break;
+			}
+		} while (0);
+		fclose(file);
+	}
+}
