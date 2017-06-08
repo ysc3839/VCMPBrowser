@@ -114,7 +114,9 @@
     <Image Include="res\history.ico" />
     <Image Include="res\internet.ico" />
     <Image Include="res\lan.ico" />
+    <Image Include="res\lock.ico" />
     <Image Include="res\small.ico" />
+    <Image Include="res\unlock.ico" />
     <Image Include="res\VCMPBrowser.ico" />
   </ItemGroup>
   <ItemGroup>
