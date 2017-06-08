@@ -778,7 +778,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						g_sortColumn = pnmv->iSubItem;
 					}
 
-					if (!g_serverFilter)
+					if (g_serverFilter)
 						delete g_serverFilter;
 
 					g_serverFilter = new std::vector<serverList::size_type>;
