@@ -464,6 +464,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					delete g_serverFilter;
 					g_serverFilter = nullptr;
 				}
+				if (g_serversMasterList)
+				{
+					delete g_serversMasterList;
+					g_serversMasterList = nullptr;
+				}
 				g_serversList.clear();
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
 				ShowWindow(g_hWndListViewHistory, SW_HIDE);
@@ -473,12 +478,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, nullptr);
 					SetWindowPos(hDialog, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 					UpdateWindow(hDialog);
-
-					if (g_serversMasterList)
-					{
-						delete g_serversMasterList;
-						g_serversMasterList = nullptr;
-					}
 
 					std::string data;
 					data.reserve(2048);
