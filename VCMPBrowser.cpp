@@ -1228,6 +1228,7 @@ void ShowSettings()
 			SetWindowTextA(GetDlgItem(hDlg, IDC_EDIT_UPD_URL), g_browserSettings.gameUpdateURL.c_str());
 			SetWindowTextA(GetDlgItem(hDlg, IDC_EDIT_UPD_PASS), g_browserSettings.gameUpdatePassword.c_str());
 			SetWindowTextA(GetDlgItem(hDlg, IDC_EDIT_MASTER_URL), g_browserSettings.masterlistURL.c_str());
+			SetWindowTextA(GetDlgItem(hDlg, IDC_EDIT_PROXY), g_browserSettings.proxy.c_str());
 			return (INT_PTR)TRUE;
 		}
 		case WM_COMMAND:
@@ -1241,6 +1242,7 @@ void ShowSettings()
 				g_browserSettings.gameUpdateURL = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_URL));
 				g_browserSettings.gameUpdatePassword = GetText(GetDlgItem(hDlg, IDC_EDIT_UPD_PASS));
 				g_browserSettings.masterlistURL = GetText(GetDlgItem(hDlg, IDC_EDIT_MASTER_URL));
+				g_browserSettings.proxy = GetText(GetDlgItem(hDlg, IDC_EDIT_PROXY));
 			}
 			break;
 		}

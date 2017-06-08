@@ -7,6 +7,7 @@ CURLcode CurlRequset(const char *URL, std::string &data, const char *userAgent)
 	if (curl)
 	{
 		curl_easy_setopt(curl, CURLOPT_URL, URL);
+		curl_easy_setopt(curl, CURLOPT_PROXY, g_browserSettings.proxy.empty() ? nullptr : g_browserSettings.proxy.c_str());
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent);

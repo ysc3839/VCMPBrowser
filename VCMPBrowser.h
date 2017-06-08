@@ -126,6 +126,7 @@ struct settings
 	std::string gameUpdateURL;
 	std::string gameUpdatePassword;
 	std::string masterlistURL;
+	std::string proxy;
 	COLORREF officialColor;
 	COLORREF custColors[16];
 	uint32_t codePage;

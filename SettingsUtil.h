@@ -38,6 +38,9 @@ void SaveSettings()
 	writer.Key("masterlistURL");
 	writer.String(g_browserSettings.masterlistURL);
 
+	writer.Key("proxy");
+	writer.String(g_browserSettings.proxy);
+
 	writer.Key("officialColor");
 	writer.Uint(g_browserSettings.officialColor);
 
@@ -67,6 +70,7 @@ void DefaultSettings()
 	g_browserSettings.gameUpdateURL = "http://u04.maxorator.com";
 	g_browserSettings.gameUpdatePassword = "";
 	g_browserSettings.masterlistURL = "http://master.vc-mp.ovh";
+	g_browserSettings.proxy = "";
 	g_browserSettings.officialColor = RGB(0, 0, 255); // Blue
 	std::fill_n(g_browserSettings.custColors, std::size(g_browserSettings.custColors), 0xFFFFFF); // White
 }
@@ -129,6 +133,10 @@ void LoadSettings()
 			member = dom.FindMember("masterlistURL");
 			if (member != dom.MemberEnd() && member->value.IsString())
 				g_browserSettings.masterlistURL = std::string(member->value.GetString(), member->value.GetStringLength());
+
+			member = dom.FindMember("proxy");
+			if (member != dom.MemberEnd() && member->value.IsString())
+				g_browserSettings.proxy = std::string(member->value.GetString(), member->value.GetStringLength());
 
 			member = dom.FindMember("officialColor");
 			if (member != dom.MemberEnd() && member->value.IsUint())

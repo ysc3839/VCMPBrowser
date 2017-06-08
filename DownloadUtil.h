@@ -197,6 +197,7 @@ bool DownloadVCMPGame(const char *version, const char *password)
 			{
 				std::string url = g_browserSettings.gameUpdateURL + "/download";
 				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_PROXY, g_browserSettings.proxy.empty() ? nullptr : g_browserSettings.proxy.c_str());
 
 				SetCurrentDirectory(g_exePath);
 
@@ -325,6 +326,7 @@ void UpdateBrowser()
 				if (curl)
 				{
 					curl_easy_setopt(curl, CURLOPT_URL, g_updateInfo.downloadLink.c_str());
+					curl_easy_setopt(curl, CURLOPT_PROXY, g_browserSettings.proxy.empty() ? nullptr : g_browserSettings.proxy.c_str());
 
 					SetCurrentDirectory(g_exePath);
 
