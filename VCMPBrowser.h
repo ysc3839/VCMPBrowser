@@ -7,6 +7,7 @@
 #include <array>
 #include <io.h>
 #include <algorithm>
+#include <map>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -47,6 +48,19 @@ struct serverAddress
 		return !(*this == rhs);
 	}
 
+	bool operator<(const serverAddress &rhs) const
+	{
+		if (this->ip < rhs.ip)
+		{
+			return true;
+		}
+		else if (this->ip == rhs.ip)
+		{
+			return this->port < rhs.port;
+		}
+		return false;
+	}
+
 	uint32_t ip;
 	uint16_t port;
 };
@@ -54,6 +68,12 @@ struct serverAddress
 struct serverMasterListInfo
 {
 	serverAddress address;
+	bool isOfficial;
+	uint32_t lastPing;
+};
+
+struct serverMasterListInfoValue
+{
 	bool isOfficial;
 	uint32_t lastPing;
 };
@@ -85,7 +105,7 @@ struct serverAllInfo
 	uint32_t lastRecv; // == 0 offline
 };
 
-typedef std::vector<serverMasterListInfo> serverMasterList;
+typedef std::map<serverAddress, serverMasterListInfoValue> serverMasterList;
 typedef std::vector<serverAllInfo> serverList;
 
 enum updateFreq

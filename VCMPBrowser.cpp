@@ -494,10 +494,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						serverMasterList serversList;
 						if (ParseJson(data.data(), serversList))
 						{
-							for (auto it = serversList.begin(); it != serversList.end(); ++it)
+							for (auto &server : serversList)
 							{
-								SendQuery(it->address, 'i');
-								it->lastPing = GetTickCount();
+								SendQuery(server.first, 'i');
+								server.second.lastPing = GetTickCount();
 							}
 							g_serversMasterList = new serverMasterList(serversList);
 						}
@@ -898,14 +898,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							serverMasterListInfo masterInfo;
 							if (g_currentTab == 1 || g_currentTab == 2)
 							{
-								for (auto server : *g_serversMasterList)
+								auto server = g_serversMasterList->find(address);
+								if (server != g_serversMasterList->end())
 								{
-									if (server.address == address)
-									{
-										found = true;
-										masterInfo = server;
-										break;
-									}
+									found = true;
+									masterInfo.address = server->first;
+									masterInfo.isOfficial = server->second.isOfficial;
+									masterInfo.lastPing = server->second.lastPing;
 								}
 							}
 							else if (g_currentTab == 3) // Lan

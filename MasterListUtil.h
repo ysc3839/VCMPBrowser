@@ -51,11 +51,12 @@ bool ParseJson(const char *json, serverMasterList &serversList)
 				auto isOfficial = it->FindMember("is_official");
 				if (ip != it->MemberEnd() && port != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && isOfficial->value.IsBool())
 				{
-					serverMasterListInfo server;
-					server.address.ip = inet_addr(ip->value.GetString());
-					server.address.port = (uint16_t)port->value.GetUint();
+					serverAddress address;
+					serverMasterListInfoValue server;
+					address.ip = inet_addr(ip->value.GetString());
+					address.port = (uint16_t)port->value.GetUint();
 					server.isOfficial = isOfficial->value.GetBool();
-					serversList.push_back(server);
+					serversList[address] = server;
 				}
 			}
 		}
