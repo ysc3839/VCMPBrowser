@@ -11,6 +11,7 @@ int g_sortColumn = 0;
 bool g_sortOrder = 0; // false=up, true=down
 std::vector<serverList::size_type> *g_serverFilter = nullptr;
 serverList g_historyList;
+bool g_checkingUpdate;
 
 HWND g_hMainWnd;
 HWND g_hWndTab;
@@ -429,9 +430,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_TOOLS_CHECKUPDATE:
 		{
-			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Checking browser update...", IDS_CHECKINGUPDATE));
-			std::thread update(CheckBrowserUpdate);
-			update.detach();
+			if (!g_checkingUpdate)
+			{
+				g_checkingUpdate = true;
+				SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Checking browser update...", IDS_CHECKINGUPDATE));
+				std::thread update(CheckBrowserUpdate);
+				update.detach();
+			}
 		}
 		break;
 		default:
@@ -1015,11 +1020,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 	case WM_UPDATE:
+		g_checkingUpdate = false;
 		if (wParam)
-		{
-			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Found new browser version!", IDS_FOUNDUPDATE));
 			UpdateBrowser();
-		}
 		else
 			SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Failed to check browser update!", IDS_CHECKFAILED));
 		break;
