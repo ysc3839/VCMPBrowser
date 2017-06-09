@@ -1,0 +1,3 @@
+[submodule "lib7zdec"]
+	path = lib7zdec
+	url = https://github.com/ysc3839/lib7zdec.git

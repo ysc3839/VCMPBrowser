@@ -1,9 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VCMPBrowser", "VCMPBrowser.vcxproj", "{197EB7B6-E085-4FEF-9260-FC98BED05BDF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2A2F157E-6313-45F8-A322-6E13D7B4064F} = {2A2F157E-6313-45F8-A322-6E13D7B4064F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lib7zdec", "lib7zdec\lib7zdec.vcxproj", "{2A2F157E-6313-45F8-A322-6E13D7B4064F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +20,10 @@ Global
 		{197EB7B6-E085-4FEF-9260-FC98BED05BDF}.Debug|x86.Build.0 = Debug|Win32
 		{197EB7B6-E085-4FEF-9260-FC98BED05BDF}.Release|x86.ActiveCfg = Release|Win32
 		{197EB7B6-E085-4FEF-9260-FC98BED05BDF}.Release|x86.Build.0 = Release|Win32
+		{2A2F157E-6313-45F8-A322-6E13D7B4064F}.Debug|x86.ActiveCfg = Debug|Win32
+		{2A2F157E-6313-45F8-A322-6E13D7B4064F}.Debug|x86.Build.0 = Debug|Win32
+		{2A2F157E-6313-45F8-A322-6E13D7B4064F}.Release|x86.ActiveCfg = Release|Win32
+		{2A2F157E-6313-45F8-A322-6E13D7B4064F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
