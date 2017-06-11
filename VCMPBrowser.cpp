@@ -12,6 +12,7 @@ bool g_sortOrder = 0; // false=up, true=down
 std::vector<serverList::size_type> *g_serverFilter = nullptr;
 serverList g_historyList;
 bool g_checkingUpdate;
+serverList g_favoriteList;
 
 HWND g_hMainWnd;
 HWND g_hWndTab;
@@ -165,6 +166,35 @@ void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info)
 	}
 }
 
+void ServerInfoUI(serverAllInfo server)
+{
+	std::wstring wstr;
+
+	ConvertCharset(server.info.serverName.c_str(), wstr);
+	SetDlgItemText(g_hWndGroupBox2, 1001, wstr.c_str()); // Server Name
+
+	wchar_t ipstr[22];
+	char *ip = (char *)&(server.address.ip);
+	swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], server.address.port);
+	SetDlgItemText(g_hWndGroupBox2, 1002, ipstr); // Server IP
+
+	wchar_t playersstr[12];
+	swprintf_s(playersstr, L"%hu/%hu", server.info.players, server.info.maxPlayers);
+	SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
+
+	wchar_t pingsstr[12];
+	uint32_t ping = server.lastRecv - server.lastPing[1];
+	_itow_s(ping, pingsstr, 10);
+	SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
+
+	ConvertCharset(server.info.gameMode.c_str(), wstr);
+	SetDlgItemText(g_hWndGroupBox2, 1005, wstr.c_str()); // Server Gamemode
+
+	SendQuery(server.address, 'i');
+	SendQuery(server.address, 'c');
+	server.lastPing[0] = GetTickCount();
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static uint32_t lanLastPing = 0;
@@ -280,6 +310,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ListView_InsertColumn(g_hWndListViewHistory, 6, &lvc);
 
 			LoadHistory();
+
+			// TEST
+			serverAllInfo info;
+			info.address.ip = 92698971;
+			info.address.port = 8192;
+
+			g_favoriteList.push_back(info);
 
 			ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
 		}
@@ -473,7 +510,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				ShowWindow(g_hWndListViewServers, SW_SHOW);
 				ShowWindow(g_hWndListViewHistory, SW_HIDE);
 				UpdateWindow(g_hWndListViewServers);
-				if (g_currentTab == 1 || g_currentTab == 2)
+				if (g_currentTab == 0)
+				{
+					ListView_SetItemCount(g_hWndListViewServers, g_favoriteList.size());
+					//InvalidateRect(g_hWndListViewServers, nullptr, FALSE);
+				}
+				else if (g_currentTab == 1 || g_currentTab == 2)
 				{
 					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, nullptr);
 					SetWindowPos(hDialog, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -552,9 +594,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (g_serverFilter && g_serverFilter->size() > i)
 					i = (*g_serverFilter)[i];
 
-				if (g_serversList.size() > i)
+				auto &list = g_currentTab == 0 ? g_favoriteList : g_serversList;
+				if (list.size() > i)
 				{
-					serverAllInfo info = g_serversList[i];
+					serverAllInfo info = list[i];
 					ProcessDispInfo(di, info);
 				}
 			}
@@ -571,9 +614,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			else if (di->hdr.hwndFrom == g_hWndListViewPlayers)
 			{
 				size_t i = g_currentServer;
-				if (g_serversList.size() > i)
+				auto &list = g_currentTab == 0 ? g_favoriteList : (g_currentTab == 4 ? g_historyList : g_serversList);
+				if (list.size() > i)
 				{
-					serverPlayers &players = g_serversList[i].players;
+					serverPlayers &players = list[i].players;
 
 					size_t j = di->item.iItem;
 					if (players.size() > j)
@@ -642,44 +686,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			LPNMITEMACTIVATE nmitem = (LPNMITEMACTIVATE)lParam;
 			if ((nmitem->uChanged & LVIF_STATE) && (nmitem->uNewState & LVIS_SELECTED))
 			{
-				if (nmitem->hdr.hwndFrom == g_hWndListViewServers)
+				if (nmitem->hdr.hwndFrom == g_hWndListViewServers || nmitem->hdr.hwndFrom == g_hWndListViewHistory)
 				{
 					size_t i = nmitem->iItem;
 					if (g_serverFilter && g_serverFilter->size() > i)
 						i = (*g_serverFilter)[i];
 					g_currentServer = i;
-					if (i != -1 && g_serversList.size() > i)
+
+					auto &list = g_currentTab == 0 ? g_favoriteList : (g_currentTab == 4 ? g_historyList : g_serversList);
+					if (i != -1 && list.size() > i)
 					{
-						if (g_serversList[i].players.empty())
+						if (list[i].players.empty())
 							ListView_DeleteAllItems(g_hWndListViewPlayers);
 						else
-							ListView_SetItemCount(g_hWndListViewPlayers, g_serversList[i].info.players);
+							ListView_SetItemCount(g_hWndListViewPlayers, list[i].info.players);
 
-						std::wstring wstr;
-
-						ConvertCharset(g_serversList[i].info.serverName.c_str(), wstr);
-						SetDlgItemText(g_hWndGroupBox2, 1001, wstr.c_str()); // Server Name
-
-						wchar_t ipstr[22];
-						char *ip = (char *)&(g_serversList[i].address.ip);
-						swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], g_serversList[i].address.port);
-						SetDlgItemText(g_hWndGroupBox2, 1002, ipstr); // Server IP
-
-						wchar_t playersstr[12];
-						swprintf_s(playersstr, L"%hu/%hu", g_serversList[i].info.players, g_serversList[i].info.maxPlayers);
-						SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
-
-						wchar_t pingsstr[12];
-						uint32_t ping = g_serversList[i].lastRecv - g_serversList[i].lastPing[1];
-						_itow_s(ping, pingsstr, 10);
-						SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
-
-						ConvertCharset(g_serversList[i].info.gameMode.c_str(), wstr);
-						SetDlgItemText(g_hWndGroupBox2, 1005, wstr.c_str()); // Server Gamemode
-
-						SendQuery(g_serversList[i].address, 'i');
-						SendQuery(g_serversList[i].address, 'c');
-						g_serversList[i].lastPing[0] = GetTickCount();
+						ServerInfoUI(list[i]);
 					}
 					else
 					{
@@ -895,7 +917,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 							bool found = false;
 							serverMasterListInfo masterInfo;
-							if (g_currentTab == 1 || g_currentTab == 2)
+							if (g_currentTab == 0) // Favorite
+							{
+								for (auto it = g_favoriteList.begin(); it != g_favoriteList.end(); ++it)
+								{
+									if (it->address == address)
+									{
+										it->lastRecv = GetTickCount();
+										it->lastPing[1] = it->lastPing[0];
+										switch (opcode)
+										{
+										case 'i':
+										{
+											serverInfo info;
+											if (GetServerInfo(recvBuf, recvLen, info))
+												it->info = info;
+										}
+										break;
+										case 'c':
+										{
+											serverPlayers players;
+											if (GetServerPlayers(recvBuf, recvLen, players))
+												it->players = players;
+										}
+										break;
+										}
+										auto i = it - g_favoriteList.begin();
+										i = g_favoriteList.size() - i - 1;
+										ListView_Update(g_hWndListViewServers, i);
+										break;
+									}
+								}
+							}
+							else if (g_currentTab == 1 || g_currentTab == 2)
 							{
 								auto server = g_serversMasterList->find(address);
 								if (server != g_serversMasterList->end())
