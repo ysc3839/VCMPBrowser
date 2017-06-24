@@ -228,6 +228,7 @@ void LoadHistory()
 						server.address.port = (uint16_t)port->value.GetUint();
 						server.info.serverName = serverName->value.GetString();
 						server.isOfficial = isOfficial->value.GetBool();
+						server.lastRecv = 0;
 						g_historyList.push_back(server);
 					}
 				}

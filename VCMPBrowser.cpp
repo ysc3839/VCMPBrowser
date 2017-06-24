@@ -140,8 +140,16 @@ void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info)
 			break;
 		case 2: // Ping
 		{
-			uint32_t ping = info.lastRecv - info.lastPing[1];
-			_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
+			if (info.lastRecv != 0)
+			{
+				uint32_t ping = info.lastRecv - info.lastPing[1];
+				_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
+			}
+			else
+			{
+				di->item.pszText[0] = L'-';
+				di->item.pszText[1] = 0;
+			}
 		}
 		break;
 		case 3: // Players
@@ -166,7 +174,7 @@ void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info)
 	}
 }
 
-void ServerInfoUI(serverAllInfo server)
+void ServerInfoUI(serverAllInfo &server)
 {
 	std::wstring wstr;
 
@@ -183,8 +191,16 @@ void ServerInfoUI(serverAllInfo server)
 	SetDlgItemText(g_hWndGroupBox2, 1003, playersstr); // Server Players
 
 	wchar_t pingsstr[12];
-	uint32_t ping = server.lastRecv - server.lastPing[1];
-	_itow_s(ping, pingsstr, 10);
+	if (server.lastRecv != 0)
+	{
+		uint32_t ping = server.lastRecv - server.lastPing[1];
+		_itow_s(ping, pingsstr, 10);
+	}
+	else
+	{
+		pingsstr[0] = L'-';
+		pingsstr[1] = 0;
+	}
 	SetDlgItemText(g_hWndGroupBox2, 1004, pingsstr); // Server Ping
 
 	ConvertCharset(server.info.gameMode.c_str(), wstr);
@@ -311,12 +327,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			LoadHistory();
 
-			// TEST
-			serverAllInfo info;
+#ifdef _DEBUG
+			serverAllInfo info = {};
 			info.address.ip = 92698971;
 			info.address.port = 8192;
-
 			g_favoriteList.push_back(info);
+#endif
 
 			ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
 		}
@@ -491,6 +507,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			switch (g_currentTab)
 			{
 			case 0: // Favorites
+				for (auto &server : g_favoriteList)
+				{
+					SendQuery(server.address, 'i');
+					server.lastPing[0] = GetTickCount();
+				}
 			case 1: // Internet
 			case 2: // Official
 			case 3: // Lan
@@ -576,10 +597,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case 4: // History
 				ShowWindow(g_hWndListViewHistory, SW_SHOW);
 				ShowWindow(g_hWndListViewServers, SW_HIDE);
-				for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
+				for (auto &server : g_historyList)
 				{
-					SendQuery(it->address, 'i');
-					it->lastPing[0] = it->lastPing[1] = GetTickCount();
+					SendQuery(server.address, 'i');
+					server.lastPing[0] = GetTickCount();
 				}
 				break;
 			}
@@ -614,17 +635,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			else if (di->hdr.hwndFrom == g_hWndListViewPlayers)
 			{
 				size_t i = g_currentServer;
-				auto &list = g_currentTab == 0 ? g_favoriteList : (g_currentTab == 4 ? g_historyList : g_serversList);
-				if (list.size() > i)
+				if (i != -1)
 				{
-					serverPlayers &players = list[i].players;
-
-					size_t j = di->item.iItem;
-					if (players.size() > j)
+					auto &list = g_currentTab == 0 ? g_favoriteList : (g_currentTab == 4 ? g_historyList : g_serversList);
+					if (list.size() > i)
 					{
-						if (di->item.mask & LVIF_TEXT)
+						serverPlayers &players = list[i].players;
+
+						size_t j = di->item.iItem;
+						if (players.size() > j)
 						{
-							MultiByteToWideChar(g_browserSettings.codePage, 0, players[j].name, -1, di->item.pszText, di->item.cchTextMax);
+							if (di->item.mask & LVIF_TEXT)
+							{
+								MultiByteToWideChar(g_browserSettings.codePage, 0, players[j].name, -1, di->item.pszText, di->item.cchTextMax);
+							}
 						}
 					}
 				}
@@ -691,10 +715,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					size_t i = nmitem->iItem;
 					if (g_serverFilter && g_serverFilter->size() > i)
 						i = (*g_serverFilter)[i];
+
+					if (g_currentTab == 4)
+						i = g_historyList.size() - i - 1;
+
 					g_currentServer = i;
 
 					auto &list = g_currentTab == 0 ? g_favoriteList : (g_currentTab == 4 ? g_historyList : g_serversList);
-					if (i != -1 && list.size() > i)
+					if (list.size() > i)
 					{
 						if (list[i].players.empty())
 							ListView_DeleteAllItems(g_hWndListViewPlayers);
@@ -703,13 +731,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 						ServerInfoUI(list[i]);
 					}
-					else
-					{
-						ListView_DeleteAllItems(g_hWndListViewPlayers);
-						for (int i = 1001; i <= 1005; ++i)
-							SetDlgItemText(g_hWndGroupBox2, i, nullptr);
-					}
 				}
+			}
+			else if ((nmitem->uChanged & LVIF_STATE) && nmitem->iItem == -1)
+			{
+				g_currentServer = -1;
+				ListView_DeleteAllItems(g_hWndListViewPlayers);
+				for (int i = 1001; i <= 1005; ++i)
+					SetDlgItemText(g_hWndGroupBox2, i, nullptr);
 			}
 		}
 		break;
@@ -917,39 +946,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 							bool found = false;
 							serverMasterListInfo masterInfo;
-							if (g_currentTab == 0) // Favorite
-							{
-								for (auto it = g_favoriteList.begin(); it != g_favoriteList.end(); ++it)
-								{
-									if (it->address == address)
-									{
-										it->lastRecv = GetTickCount();
-										it->lastPing[1] = it->lastPing[0];
-										switch (opcode)
-										{
-										case 'i':
-										{
-											serverInfo info;
-											if (GetServerInfo(recvBuf, recvLen, info))
-												it->info = info;
-										}
-										break;
-										case 'c':
-										{
-											serverPlayers players;
-											if (GetServerPlayers(recvBuf, recvLen, players))
-												it->players = players;
-										}
-										break;
-										}
-										auto i = it - g_favoriteList.begin();
-										i = g_favoriteList.size() - i - 1;
-										ListView_Update(g_hWndListViewServers, i);
-										break;
-									}
-								}
-							}
-							else if (g_currentTab == 1 || g_currentTab == 2)
+							if (g_currentTab == 1 || g_currentTab == 2)
 							{
 								auto server = g_serversMasterList->find(address);
 								if (server != g_serversMasterList->end())
@@ -967,14 +964,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								masterInfo.isOfficial = false;
 								masterInfo.lastPing = lanLastPing;
 							}
-							else if (g_currentTab == 4) // History
+							else if (g_currentTab == 0 || g_currentTab == 4) // Favorite History
 							{
-								for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
+								auto &list = g_currentTab == 4 ? g_historyList : g_favoriteList;
+								for (auto it = list.begin(); it != list.end(); ++it)
 								{
 									if (it->address == address)
 									{
 										it->lastRecv = GetTickCount();
 										it->lastPing[1] = it->lastPing[0];
+										auto i = it - list.begin();
 										switch (opcode)
 										{
 										case 'i':
@@ -982,6 +981,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 											serverInfo info;
 											if (GetServerInfo(recvBuf, recvLen, info))
 												it->info = info;
+											ListView_Update(g_hWndListViewHistory, i);
 										}
 										break;
 										case 'c':
@@ -989,12 +989,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 											serverPlayers players;
 											if (GetServerPlayers(recvBuf, recvLen, players))
 												it->players = players;
+											if (i == g_currentServer)
+												ListView_SetItemCount(g_hWndListViewPlayers, players.size());
 										}
 										break;
 										}
-										auto i = it - g_historyList.begin();
-										i = g_historyList.size() - i - 1;
-										ListView_Update(g_hWndListViewHistory, i);
 										break;
 									}
 								}
@@ -1045,14 +1044,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 									serverPlayers players;
 									if (GetServerPlayers(recvBuf, recvLen, players))
 									{
-										for (auto it = g_serversList.begin(); it != g_serversList.end(); ++it)
+										auto &list = g_serversList;
+										for (auto it = list.begin(); it != list.end(); ++it)
 										{
 											if (it->address == address)
 											{
 												it->lastRecv = GetTickCount();
 												it->lastPing[1] = it->lastPing[0];
 												it->players = players;
-												auto i = it - g_serversList.begin();
+												auto i = it - list.begin();
 												if (i == g_currentServer)
 													ListView_SetItemCount(g_hWndListViewPlayers, players.size());
 												break;
