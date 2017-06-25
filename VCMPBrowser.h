@@ -103,6 +103,7 @@ struct serverAllInfo
 	bool isOfficial;
 	uint32_t lastPing[2];
 	uint32_t lastRecv; // == 0 offline
+	time_t lastPlayed;
 };
 
 typedef std::map<serverAddress, serverMasterListInfoValue> serverMasterList;

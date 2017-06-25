@@ -184,6 +184,9 @@ void SaveHistory()
 		writer.Key("isOfficial");
 		writer.Bool(server.isOfficial);
 
+		writer.Key("lastPlayed");
+		writer.Uint64(server.lastPlayed);
+
 		writer.EndObject();
 	}
 
@@ -222,12 +225,14 @@ void LoadHistory()
 					auto port = it->FindMember("port");
 					auto serverName = it->FindMember("serverName");
 					auto isOfficial = it->FindMember("isOfficial");
-					if (ip != it->MemberEnd() && port != it->MemberEnd() && serverName != it->MemberEnd() && isOfficial != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && serverName->value.IsString() && isOfficial->value.IsBool())
+					auto lastPlayed = it->FindMember("lastPlayed");
+					if (ip != it->MemberEnd() && port != it->MemberEnd() && serverName != it->MemberEnd() && isOfficial != it->MemberEnd() && lastPlayed != it->MemberEnd() && ip->value.IsString() && port->value.IsUint() && serverName->value.IsString() && isOfficial->value.IsBool() && lastPlayed->value.IsUint())
 					{
 						server.address.ip = inet_addr(ip->value.GetString());
 						server.address.port = (uint16_t)port->value.GetUint();
 						server.info.serverName = serverName->value.GetString();
 						server.isOfficial = isOfficial->value.GetBool();
+						server.lastPlayed = lastPlayed->value.GetUint64();
 						server.lastRecv = 0;
 						g_historyList.push_back(server);
 					}

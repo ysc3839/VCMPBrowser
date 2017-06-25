@@ -121,7 +121,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return TRUE;
 }
 
-void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info)
+void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info, bool history)
 {
 	if (di->item.iSubItem == 0 && di->item.mask & LVIF_IMAGE)
 		di->item.iImage = info.info.isPassworded;
@@ -165,7 +165,12 @@ void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info)
 			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 		}
 		break;
-		case 6: // Map name
+		case 6:
+		if (history) // Last Played
+		{
+			wcsftime(di->item.pszText, di->item.cchTextMax, L"%F %T", gmtime(&info.lastPlayed));
+		}
+		else // Map name
 		{
 			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.mapName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 		}
@@ -619,7 +624,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (list.size() > i)
 				{
 					serverAllInfo info = list[i];
-					ProcessDispInfo(di, info);
+					ProcessDispInfo(di, info, false);
 				}
 			}
 			else if (di->hdr.hwndFrom == g_hWndListViewHistory)
@@ -630,7 +635,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				auto it = g_historyList.crbegin() + i;
 				if (it != g_historyList.crend())
-					ProcessDispInfo(di, *it);
+					ProcessDispInfo(di, *it, true);
 			}
 			else if (di->hdr.hwndFrom == g_hWndListViewPlayers)
 			{
@@ -752,6 +757,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					i = (*g_serverFilter)[i];
 				if (i != -1 && g_serversList.size() > i)
 				{
+					g_serversList[i].lastPlayed = time(nullptr);
+
 					auto address = g_serversList[i].address;
 					size_t index = -1;
 					for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
@@ -778,9 +785,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				size_t i = nmia->iItem;
 				if (g_serverFilter && g_serverFilter->size() > i)
 					i = (*g_serverFilter)[i];
-				auto it = g_historyList.crbegin() + i;
-				if (it != g_historyList.crend())
+				auto it = g_historyList.rbegin() + i;
+				if (it != g_historyList.rend())
 				{
+					it->lastPlayed = time(nullptr);
+
 					serverAllInfo serverInfo = *it;
 					g_historyList.erase(--(it.base()));
 					g_historyList.push_back(serverInfo);
@@ -981,6 +990,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 											serverInfo info;
 											if (GetServerInfo(recvBuf, recvLen, info))
 												it->info = info;
+											if (g_currentTab == 4)
+												i = g_historyList.size() - i - 1;
 											ListView_Update(g_hWndListViewHistory, i);
 										}
 										break;
