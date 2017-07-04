@@ -8,6 +8,7 @@
 #include <io.h>
 #include <algorithm>
 #include <map>
+#include <fstream>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -62,6 +63,12 @@ struct serverAddress
 	}
 
 	uint32_t ip;
+	uint16_t port;
+};
+
+struct serverHost
+{
+	std::string hostname;
 	uint16_t port;
 };
 

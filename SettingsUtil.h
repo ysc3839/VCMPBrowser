@@ -244,3 +244,45 @@ void LoadHistory()
 		fclose(file);
 	}
 }
+
+bool ImportFavorite(const wchar_t *filename, std::vector<serverHost> &serverHosts)
+{
+	using std::ifstream;
+	ifstream file(filename, ifstream::binary);
+	if (file)
+	{
+		file.exceptions(ifstream::failbit | ifstream::badbit);
+		try
+		{
+			char magic[8];
+			file.read(magic, sizeof(magic));
+			if (*(uint64_t*)&magic == 0x10100544655FFFF) // FF FF 55 46 54 00 01 01
+			{
+				uint32_t count;
+				file.read((char*)&count, sizeof(count));
+				for (uint32_t i = 0; i < count; i++)
+				{
+					uint16_t len;
+					file.read((char*)&len, sizeof(len));
+
+					char * hostname = new char[len];
+					file.read(hostname, len);
+
+					uint16_t port;
+					file.read((char*)&port, sizeof(port));
+
+					serverHost host = { hostname, port };
+					serverHosts.push_back(host);
+
+					delete[] hostname;
+				}
+				return true;
+			}
+		}
+		catch (ifstream::failure e)
+		{
+			return false;
+		}
+	}
+	return false;
+}

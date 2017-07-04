@@ -497,6 +497,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
+		case IDM_IMPORT_FAVORITE:
+		{
+			OPENFILENAME ofn = {};
+			wchar_t uftPath[MAX_PATH];
+			uftPath[0] = 0;
+
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = hWnd;
+			ofn.lpstrFile = uftPath;
+			ofn.nMaxFile = sizeof(uftPath);
+			ofn.lpstrFilter = L"Favourites.uft\0Favourites.uft\0";
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+
+			if (GetOpenFileName(&ofn))
+			{
+				std::vector<serverHost> serverHosts;
+				if (ImportFavorite(uftPath, serverHosts))
+				{
+					for (auto server : serverHosts)
+					{
+						serverAllInfo info = {};
+						info.address.ip = inet_addr(server.hostname.c_str());
+						info.address.port = server.port;
+						info.info.serverName = "(Offline)";
+
+						if (g_currentTab == 0)
+						{
+							SendQuery(info.address, 'i');
+							info.lastPing[0] = GetTickCount();
+						}
+						g_favoriteList.push_back(info);
+					}
+					ListView_SetItemCount(g_hWndListViewServers, g_favoriteList.size());
+				}
+			}
+		}
+		break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -991,8 +1028,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 											if (GetServerInfo(recvBuf, recvLen, info))
 												it->info = info;
 											if (g_currentTab == 4)
-												i = g_historyList.size() - i - 1;
-											ListView_Update(g_hWndListViewHistory, i);
+												ListView_Update(g_hWndListViewHistory, g_historyList.size() - i - 1);
+											else
+												ListView_Update(g_hWndListViewServers, i);
 										}
 										break;
 										case 'c':
