@@ -23,6 +23,7 @@ HWND g_hWndListViewPlayers;
 HWND g_hWndGroupBox2;
 HWND g_hWndStatusBar;
 
+#include "HiDPI.h"
 #include "i18n.h"
 #include "SettingsUtil.h"
 #include "MasterListUtil.h"
@@ -53,6 +54,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SetThreadLocale(MAKELCID(languages[g_browserSettings.language], SORT_DEFAULT));
 	SetThreadUILanguage(languages[g_browserSettings.language]);
 	InitMUILanguage(languages[g_browserSettings.language]);
+
+	SetDPIAware();
+	InitDPIScale();
 
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NOERROR)
@@ -247,7 +251,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		else
 			return -1;
 
-		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - UI_PLAYERLIST_WIDTH - 4, rcClient.bottom - UI_SERVERINFO_HEIGHT - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewServers)
 		{
 			// Allow header double clicks
@@ -263,36 +267,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			LVCOLUMN lvc;
 			lvc.mask = LVCF_WIDTH;
-			lvc.cx = 24;
+			lvc.cx = Scale(24);
 			ListView_InsertColumn(g_hWndListViewServers, 0, &lvc);
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
-			lvc.cx = 280;
+			lvc.cx = Scale(280);
 			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
 			ListView_InsertColumn(g_hWndListViewServers, 1, &lvc);
 
-			lvc.cx = 60;
+			lvc.cx = Scale(60);
 			lvc.pszText = LoadStr(L"Ping", IDS_PING);
 			ListView_InsertColumn(g_hWndListViewServers, 2, &lvc);
 
-			lvc.cx = 80;
+			lvc.cx = Scale(80);
 			lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
 			ListView_InsertColumn(g_hWndListViewServers, 3, &lvc);
 
-			lvc.cx = 70;
+			lvc.cx = Scale(70);
 			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
 			ListView_InsertColumn(g_hWndListViewServers, 4, &lvc);
 
-			lvc.cx = 140;
+			lvc.cx = Scale(140);
 			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
 			ListView_InsertColumn(g_hWndListViewServers, 5, &lvc);
 
-			lvc.cx = 100;
+			lvc.cx = Scale(100);
 			lvc.pszText = LoadStr(L"Map Name", IDS_MAPNAME);
 			ListView_InsertColumn(g_hWndListViewServers, 6, &lvc);
 		}
 
-		g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 1, 21, rcClient.right - UI_PLAYERLIST_WIDTH - 4, rcClient.bottom - UI_SERVERINFO_HEIGHT - 21 - 2, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewHistory)
 		{
 			SetWindowTheme(g_hWndListViewHistory, L"Explorer", nullptr);
@@ -302,31 +306,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			LVCOLUMN lvc;
 			lvc.mask = LVCF_WIDTH;
-			lvc.cx = 24;
+			lvc.cx = Scale(24);
 			ListView_InsertColumn(g_hWndListViewHistory, 0, &lvc);
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
-			lvc.cx = 240;
+			lvc.cx = Scale(240);
 			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
 			ListView_InsertColumn(g_hWndListViewHistory, 1, &lvc);
 
-			lvc.cx = 60;
+			lvc.cx = Scale(60);
 			lvc.pszText = LoadStr(L"Ping", IDS_PING);
 			ListView_InsertColumn(g_hWndListViewHistory, 2, &lvc);
 
-			lvc.cx = 80;
+			lvc.cx = Scale(80);
 			lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
 			ListView_InsertColumn(g_hWndListViewHistory, 3, &lvc);
 
-			lvc.cx = 70;
+			lvc.cx = Scale(70);
 			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
 			ListView_InsertColumn(g_hWndListViewHistory, 4, &lvc);
 
-			lvc.cx = 120;
+			lvc.cx = Scale(120);
 			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
 			ListView_InsertColumn(g_hWndListViewHistory, 5, &lvc);
 
-			lvc.cx = 160;
+			lvc.cx = Scale(160);
 			lvc.pszText = LoadStr(L"Last Played", IDS_LASTPLAYED);
 			ListView_InsertColumn(g_hWndListViewHistory, 6, &lvc);
 
@@ -342,7 +346,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
 		}
 
-		g_hWndTab = CreateWindow(WC_TABCONTROL, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 0, 0, rcClient.right - UI_PLAYERLIST_WIDTH, rcClient.bottom - UI_SERVERINFO_HEIGHT, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndTab = CreateWindow(WC_TABCONTROL, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndTab)
 		{
 			SetWindowFont(g_hWndTab, hFont, FALSE);
@@ -378,7 +382,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			TabCtrl_InsertItem(g_hWndTab, 4, &tie);
 		}
 
-		g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL | LVS_OWNERDATA, rcClient.right - UI_PLAYERLIST_WIDTH + 1, 18, UI_PLAYERLIST_WIDTH - 2, rcClient.bottom - UI_SERVERINFO_HEIGHT - 18 - 2, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL | LVS_OWNERDATA, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewPlayers)
 		{
 			SetWindowTheme(g_hWndListViewPlayers, L"Explorer", nullptr);
@@ -387,61 +391,61 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			LVCOLUMN lvc;
 			lvc.mask = LVCF_WIDTH;
-			lvc.cx = UI_PLAYERLIST_WIDTH - 2;
+			lvc.cx = Scale(UI_PLAYERLIST_WIDTH - 2);
 			ListView_InsertColumn(g_hWndListViewPlayers, 0, &lvc);
 		}
 
-		g_hWndGroupBox1 = CreateWindow(WC_BUTTON, LoadStr(L"Players", IDS_PLAYERSLIST), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, rcClient.right - UI_PLAYERLIST_WIDTH, 0, UI_PLAYERLIST_WIDTH, rcClient.bottom - UI_SERVERINFO_HEIGHT, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndGroupBox1 = CreateWindow(WC_BUTTON, LoadStr(L"Players", IDS_PLAYERSLIST), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndGroupBox1)
 		{
 			SetWindowFont(g_hWndGroupBox1, hFont, FALSE);
 		}
 
-		g_hWndGroupBox2 = CreateWindow(WC_BUTTON, LoadStr(L"Server Info", IDS_SERVERINFO), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, 0, rcClient.bottom - UI_SERVERINFO_HEIGHT, rcClient.right, 118, hWnd, nullptr, g_hInst, nullptr);
+		g_hWndGroupBox2 = CreateWindow(WC_BUTTON, LoadStr(L"Server Info", IDS_SERVERINFO), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | BS_GROUPBOX, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndGroupBox2)
 		{
 			SetWindowFont(g_hWndGroupBox2, hFont, FALSE);
 
-			int y = 18;
-#define LINE_GAP 20
-#define LABEL_X 2
-#define LABEL_WIDTH 150
-#define EDIT_X LABEL_X + LABEL_WIDTH + 2
-#define EDIT_WIDTH 300
-#define HEIGHT 16
+			int y = Scale(18);
+			int lineGap = Scale(20); // #define LINE_GAP 20
+			int labelX = Scale(2); // #define LABEL_X 2
+			int labelWidth = Scale(150); // #define LABEL_WIDTH 150
+			int editX = labelX + labelWidth + Scale(2); // #define EDIT_X LABEL_X + LABEL_WIDTH + 2
+			int editWidth = Scale(300); // #define EDIT_WIDTH 300
+			int height = Scale(16); // #define HEIGHT 16
 
-			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME_), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, LABEL_X, y, LABEL_WIDTH, HEIGHT, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME_), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, EDIT_X, y, EDIT_WIDTH, HEIGHT, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
+			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
-			y += LINE_GAP;
+			y += lineGap;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server IP:", IDS_SERVERIP), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, LABEL_X, y, LABEL_WIDTH, HEIGHT, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server IP:", IDS_SERVERIP), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, EDIT_X, y, EDIT_WIDTH, HEIGHT, g_hWndGroupBox2, (HMENU)1002, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1002, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
-			y += LINE_GAP;
+			y += lineGap;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Players:", IDS_SERVERPLAYERS), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, LABEL_X, y, LABEL_WIDTH, HEIGHT, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Players:", IDS_SERVERPLAYERS), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, EDIT_X, y, EDIT_WIDTH, HEIGHT, g_hWndGroupBox2, (HMENU)1003, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1003, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
-			y += LINE_GAP;
+			y += lineGap;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Ping:", IDS_SERVERPING), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, LABEL_X, y, LABEL_WIDTH, HEIGHT, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Ping:", IDS_SERVERPING), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, EDIT_X, y, EDIT_WIDTH, HEIGHT, g_hWndGroupBox2, (HMENU)1004, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1004, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
-			y += LINE_GAP;
+			y += lineGap;
 
-			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Gamemode:", IDS_SERVERGAMEMODE), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, LABEL_X, y, LABEL_WIDTH, HEIGHT, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
+			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Gamemode:", IDS_SERVERGAMEMODE), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, EDIT_X, y, EDIT_WIDTH, HEIGHT, g_hWndGroupBox2, (HMENU)1005, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1005, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
 		}
 
@@ -949,20 +953,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HDWP hDWP = BeginDeferWindowPos(6);
 		if (hDWP != nullptr)
 		{
-			DeferWindowPos(hDWP, g_hWndTab, 0, 0, 0, clientWidth - UI_PLAYERLIST_WIDTH, clientHeight - UI_SERVERINFO_HEIGHT, SWP_NOZORDER);
-			DeferWindowPos(hDWP, g_hWndListViewServers, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
-			DeferWindowPos(hDWP, g_hWndListViewHistory, 0, 1, 21, clientWidth - UI_PLAYERLIST_WIDTH - 4, clientHeight - UI_SERVERINFO_HEIGHT - 21 - 2, SWP_NOZORDER);
-			DeferWindowPos(hDWP, g_hWndGroupBox1, 0, clientWidth - UI_PLAYERLIST_WIDTH, 0, UI_PLAYERLIST_WIDTH, clientHeight - UI_SERVERINFO_HEIGHT, SWP_NOZORDER);
-			DeferWindowPos(hDWP, g_hWndListViewPlayers, 0, clientWidth - UI_PLAYERLIST_WIDTH + 1, 18, UI_PLAYERLIST_WIDTH - 2, clientHeight - UI_SERVERINFO_HEIGHT - 18 - 2, SWP_NOZORDER);
-			DeferWindowPos(hDWP, g_hWndGroupBox2, 0, 0, clientHeight - UI_SERVERINFO_HEIGHT, clientWidth, 118, SWP_NOZORDER);
+			DeferWindowPos(hDWP, g_hWndTab, 0, 0, 0, clientWidth - Scale(UI_PLAYERLIST_WIDTH), clientHeight - Scale(UI_SERVERINFO_HEIGHT), SWP_NOZORDER);
+			DeferWindowPos(hDWP, g_hWndListViewServers, 0, Scale(1), Scale(25), clientWidth - Scale(UI_PLAYERLIST_WIDTH + 4), clientHeight - Scale(UI_SERVERINFO_HEIGHT + 25 + 2), SWP_NOZORDER);
+			DeferWindowPos(hDWP, g_hWndListViewHistory, 0, Scale(1), Scale(25), clientWidth - Scale(UI_PLAYERLIST_WIDTH + 4), clientHeight - Scale(UI_SERVERINFO_HEIGHT + 25 + 2), SWP_NOZORDER);
+			DeferWindowPos(hDWP, g_hWndGroupBox1, 0, clientWidth - Scale(UI_PLAYERLIST_WIDTH), 0, Scale(UI_PLAYERLIST_WIDTH), clientHeight - Scale(UI_SERVERINFO_HEIGHT), SWP_NOZORDER);
+			DeferWindowPos(hDWP, g_hWndListViewPlayers, 0, clientWidth - Scale(UI_PLAYERLIST_WIDTH - 1), Scale(18), Scale(UI_PLAYERLIST_WIDTH - 2), clientHeight - Scale(UI_SERVERINFO_HEIGHT + 18 + 2), SWP_NOZORDER);
+			DeferWindowPos(hDWP, g_hWndGroupBox2, 0, 0, clientHeight - Scale(UI_SERVERINFO_HEIGHT), clientWidth, Scale(118), SWP_NOZORDER);
 			EndDeferWindowPos(hDWP);
 		}
 		SendMessage(g_hWndStatusBar, WM_SIZE, 0, 0);
 	}
 	break;
 	case WM_GETMINMAXINFO:
-		((LPMINMAXINFO)lParam)->ptMinTrackSize = { 750, 500 };
+	{
+		static int scaleX = Scale(750);
+		static int scaleY = Scale(500);
+		((LPMINMAXINFO)lParam)->ptMinTrackSize = { scaleX, scaleY };
 		break;
+	}
 	case WM_DESTROY:
 		if (_hFont)
 			DeleteObject(_hFont);

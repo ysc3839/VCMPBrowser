@@ -12,6 +12,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <Windows.h>
 #include <Commctrl.h>
 #include <Shellapi.h>
