@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="资源文件\langs">
+      <UniqueIdentifier>{a31c2f06-20e1-437e-91ff-a76d6c537cdf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VCMPBrowser.h">
@@ -39,6 +42,9 @@
     <ClInclude Include="SettingsUtil.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="HiDPI.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VCMPBrowser.cpp">
@@ -48,6 +54,9 @@
   <ItemGroup>
     <ResourceCompile Include="VCMPBrowser.rc">
       <Filter>资源文件</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="langs\en-US.rc">
+      <Filter>资源文件\langs</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>

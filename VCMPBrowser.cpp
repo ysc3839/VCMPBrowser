@@ -490,7 +490,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
 			break;
-		case ID_TOOLS_CHECKUPDATE:
+		case IDM_TOOLS_CHECKUPDATE:
 		{
 			if (!g_checkingUpdate)
 			{
