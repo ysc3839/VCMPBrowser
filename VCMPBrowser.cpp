@@ -754,9 +754,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case LVN_ITEMCHANGED:
 		{
 			LPNMITEMACTIVATE nmitem = (LPNMITEMACTIVATE)lParam;
-			if ((nmitem->uChanged & LVIF_STATE) && (nmitem->uNewState & LVIS_SELECTED))
+			if (nmitem->hdr.hwndFrom == g_hWndListViewServers || nmitem->hdr.hwndFrom == g_hWndListViewHistory)
 			{
-				if (nmitem->hdr.hwndFrom == g_hWndListViewServers || nmitem->hdr.hwndFrom == g_hWndListViewHistory)
+				if ((nmitem->uChanged & LVIF_STATE) && (nmitem->uNewState & LVIS_SELECTED))
 				{
 					size_t i = nmitem->iItem;
 					if (g_serverFilter && g_serverFilter->size() > i)
@@ -778,13 +778,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						ServerInfoUI(list[i]);
 					}
 				}
-			}
-			else if ((nmitem->uChanged & LVIF_STATE) && nmitem->iItem == -1)
-			{
-				g_currentServer = -1;
-				ListView_DeleteAllItems(g_hWndListViewPlayers);
-				for (int i = 1001; i <= 1005; ++i)
-					SetDlgItemText(g_hWndGroupBox2, i, nullptr);
+				else if ((nmitem->uChanged & LVIF_STATE) && nmitem->iItem == -1)
+				{
+					g_currentServer = -1;
+					ListView_DeleteAllItems(g_hWndListViewPlayers);
+					for (int i = 1001; i <= 1005; ++i)
+						SetDlgItemText(g_hWndGroupBox2, i, nullptr);
+				}
 			}
 		}
 		break;
