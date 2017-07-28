@@ -67,6 +67,7 @@
     </Link>
     <ResourceCompile>
       <NullTerminateStrings>true</NullTerminateStrings>
+      <AdditionalOptions>/y %(AdditionalOptions)</AdditionalOptions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -88,6 +89,7 @@
     </Link>
     <ResourceCompile>
       <NullTerminateStrings>true</NullTerminateStrings>
+      <AdditionalOptions>/y %(AdditionalOptions)</AdditionalOptions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
