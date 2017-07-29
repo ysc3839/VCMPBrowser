@@ -220,6 +220,21 @@ void ServerInfoUI(serverAllInfo &server)
 	server.lastPing[0] = GetTickCount();
 }
 
+int PopupMenu(LPCWSTR menuName, POINT pt)
+{
+	HMENU hMenu = LoadMenu(g_hInst, menuName);
+	if (!hMenu)
+		return 0;
+
+	HMENU hSubMenu = GetSubMenu(hMenu, 0);
+
+	int ret = TrackPopupMenu(hSubMenu, TPM_NONOTIFY | TPM_RETURNCMD, pt.x, pt.y, 0, g_hMainWnd, nullptr);
+
+	DestroyMenu(hMenu);
+
+	return ret;
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static uint32_t lanLastPing = 0;
@@ -942,6 +957,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				InvalidateRect(g_hWndListViewServers, nullptr, FALSE);
 			}
+		}
+		break;
+		case NM_RCLICK:
+		{
+			LPNMITEMACTIVATE pnmitem = (LPNMITEMACTIVATE)lParam;
+			if (pnmitem->iItem == -1)
+				break;
+
+			LPCWSTR menuID = 0;
+			if (pnmitem->hdr.hwndFrom == g_hWndListViewServers)
+			{
+				switch (g_currentTab)
+				{
+				case 0: // Favorites
+					menuID = MAKEINTRESOURCE(IDR_FAVORITEMENU);
+					break;
+				case 1: // Internet
+				case 2: // Official
+				case 3: // Lan
+					menuID = MAKEINTRESOURCE(IDR_SERVERMENU);
+					break;
+				}
+			}
+			else if (pnmitem->hdr.hwndFrom == g_hWndListViewHistory)
+			{
+			}
+			else if (pnmitem->hdr.hwndFrom == g_hWndListViewPlayers)
+			{
+				menuID = MAKEINTRESOURCE(IDR_PLAYERMENU);
+			}
+
+			if (!menuID)
+				break;
+
+			POINT pt = pnmitem->ptAction;
+			ClientToScreen(pnmitem->hdr.hwndFrom, &pt);
+
+			int id = PopupMenu(menuID, pt);
 		}
 		break;
 		}
