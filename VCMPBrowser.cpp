@@ -432,35 +432,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME_), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
+			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server IP:", IDS_SERVERIP), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1002, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1002, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Players:", IDS_SERVERPLAYERS), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1003, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1003, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Ping:", IDS_SERVERPING), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1004, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1004, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Gamemode:", IDS_SERVERGAMEMODE), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
-			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1005, g_hInst, nullptr);
+			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1005, g_hInst, nullptr);
 			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
 		}
 
