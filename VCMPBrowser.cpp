@@ -235,6 +235,38 @@ int PopupMenu(LPCWSTR menuName, POINT pt)
 	return ret;
 }
 
+std::list<size_t> ListView_GetSelectedItmes(HWND hWnd)
+{
+	std::list<size_t> list;
+	int i = ListView_GetNextItem(hWnd, -1, LVNI_SELECTED);
+	while (i != -1)
+	{
+		list.push_back(i);
+		i = ListView_GetNextItem(hWnd, i, LVNI_SELECTED);
+	}
+	return list;
+}
+
+void SetClipboardText(std::wstring text)
+{
+	if (!OpenClipboard(g_hMainWnd))
+		return;
+
+	EmptyClipboard();
+
+	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, text.size() * sizeof(wchar_t));
+	if (!hGlobal)
+		CloseClipboard();
+
+	void *p = GlobalLock(hGlobal);
+	text._Copy_s((wchar_t*)p, text.size() * sizeof(wchar_t), text.size());
+	GlobalUnlock(hGlobal);
+
+	SetClipboardData(CF_UNICODETEXT, hGlobal);
+
+	CloseClipboard();
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static uint32_t lanLastPing = 0;
@@ -995,6 +1027,95 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ClientToScreen(pnmitem->hdr.hwndFrom, &pt);
 
 			int id = PopupMenu(menuID, pt);
+
+			if (pnmitem->hdr.hwndFrom == g_hWndListViewServers)
+			{
+				auto selList = ListView_GetSelectedItmes(pnmitem->hdr.hwndFrom);
+				std::list<serverAllInfo> infoList;
+				auto &list = g_currentTab == 0 ? g_favoriteList : g_serversList;
+				for (size_t i : selList)
+				{
+					if (g_serverFilter && g_serverFilter->size() > i)
+						i = (*g_serverFilter)[i];
+
+					if (list.size() > i)
+						infoList.push_back(list[i]);
+				}
+
+				switch (id)
+				{
+				case IDM_ADDFAVORITE:
+					break;
+				case IDM_COPYSERVERIP:
+				{
+					std::wstring text;
+					wchar_t ipstr[24];
+					for (auto info : infoList)
+					{
+						char *ip = (char *)&(info.address.ip);
+						swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu\r\n", ip[0], ip[1], ip[2], ip[3], info.address.port);
+						text += ipstr;
+					}
+					SetClipboardText(text);
+				}
+				break;
+				case IDM_DELETEFROMLIST:
+					break;
+				case IDM_COPYSERVERINFO:
+				{
+					std::wstring text;
+					wchar_t infostr[512];
+					for (auto info : infoList)
+					{
+						wchar_t ipstr[22];
+						char *ip = (char *)&(info.address.ip);
+						swprintf_s(ipstr, L"%hhu.%hhu.%hhu.%hhu:%hu", ip[0], ip[1], ip[2], ip[3], info.address.port);
+
+						wchar_t playersstr[12];
+						swprintf_s(playersstr, L"%hu/%hu", info.info.players, info.info.maxPlayers);
+
+						wchar_t pingsstr[12];
+						if (info.lastRecv != 0)
+						{
+							uint32_t ping = info.lastRecv - info.lastPing[1];
+							_itow_s(ping, pingsstr, 10);
+						}
+						else
+						{
+							pingsstr[0] = L'-';
+							pingsstr[1] = 0;
+						}
+
+						std::wstring serverName;
+						ConvertCharset(info.info.serverName.c_str(), serverName);
+
+						std::wstring gameMode;
+						ConvertCharset(info.info.gameMode.c_str(), gameMode);
+
+						std::wstring mapName;
+						ConvertCharset(info.info.mapName.c_str(), mapName);
+
+						int l = swprintf_s(infostr, L"Name: %s\r\nIP: %s\r\nPlayers: %s\r\nPing: %s\r\nGamemode: %s\r\nMap: %s\r\n\r\n", serverName.c_str(), ipstr, playersstr, pingsstr, gameMode.c_str(), mapName.c_str());
+						if (l == -1)
+						{
+							l = _scwprintf(L"Name: %s\r\nIP: %s\r\nPlayers: %s\r\nPing: %s\r\nGamemode: %s\r\nMap: %s\r\n\r\n", serverName.c_str(), ipstr, playersstr, pingsstr, gameMode.c_str(), mapName.c_str());
+
+							wchar_t *_infostr = new wchar_t[++l];
+
+							swprintf_s(_infostr, l, L"Name: %s\r\nIP: %s\r\nPlayers: %s\r\nPing: %s\r\nGamemode: %s\r\nMap: %s\r\n\r\n", serverName.c_str(), ipstr, playersstr, pingsstr, gameMode.c_str(), mapName.c_str());
+
+							text += _infostr;
+							delete[] _infostr;
+						}
+						else
+							text += infostr;
+					}
+					SetClipboardText(text);
+				}
+				break;
+				}
+			}
+
 		}
 		break;
 		}
