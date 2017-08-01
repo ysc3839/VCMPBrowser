@@ -1115,6 +1115,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 				}
 			}
+			else if (pnmitem->hdr.hwndFrom == g_hWndListViewHistory)
+			{
+			}
+			else if (pnmitem->hdr.hwndFrom == g_hWndListViewPlayers)
+			{
+				switch (id)
+				{
+				case IDM_COPYPLAYERNAME:
+					break;
+				case IDM_COPYPLAYERLIST:
+					break;
+				}
+			}
 
 		}
 		break;
