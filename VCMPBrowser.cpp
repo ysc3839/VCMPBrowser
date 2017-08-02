@@ -1120,12 +1120,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			else if (pnmitem->hdr.hwndFrom == g_hWndListViewPlayers)
 			{
-				switch (id)
+				size_t i = g_currentServer;
+				if (i != -1)
 				{
-				case IDM_COPYPLAYERNAME:
-					break;
-				case IDM_COPYPLAYERLIST:
-					break;
+					auto &list = g_currentTab == 0 ? g_favoriteList : (g_currentTab == 4 ? g_historyList : g_serversList);
+					if (list.size() > i)
+					{
+						serverPlayers &players = list[i].players;
+
+						switch (id)
+						{
+						case IDM_COPYPLAYERNAME:
+						{
+							size_t j = ListView_GetNextItem(g_hWndListViewPlayers, -1, LVNI_SELECTED);;
+							if (players.size() > j)
+							{
+								std::wstring wstr;
+								ConvertCharset(players[j].name, wstr);
+								SetClipboardText(wstr);
+							}
+						}
+						break;
+						case IDM_COPYPLAYERLIST:
+						{
+							std::wstring text;
+							for (auto player : players)
+							{
+								std::wstring wstr;
+								ConvertCharset(player.name, wstr);
+								text += wstr + L"\r\n";
+							}
+							SetClipboardText(text);
+						}
+						break;
+						}
+					}
 				}
 			}
 

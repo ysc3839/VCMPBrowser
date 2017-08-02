@@ -43,7 +43,7 @@ bool ConvertCharset(const char *from, std::wstring &to)
 		return false;
 
 	to.clear();
-	to.append(buffer, size);
+	to.append(buffer);
 
 	delete[] buffer;
 	return true;
