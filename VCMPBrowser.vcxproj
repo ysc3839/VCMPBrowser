@@ -98,6 +98,7 @@
     <ClInclude Include="i18n.h" />
     <ClInclude Include="MasterListUtil.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="ServerInfoUtil.h" />
     <ClInclude Include="ServerQueryUtil.h" />
     <ClInclude Include="SettingsUtil.h" />
     <ClInclude Include="VCMPBrowser.h" />
