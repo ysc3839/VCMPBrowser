@@ -137,38 +137,20 @@ void ProcessDispInfo(LPNMLVDISPINFOW di, const serverAllInfo &info, bool history
 		case 0: // Icon
 			break;
 		case 1: // Server Name
-			if (di->item.cchTextMax > 0 && di->item.pszText)
-			{
-				MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
-			}
+			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.serverName.c_str(), -1, di->item.pszText, di->item.cchTextMax);
 			break;
 		case 2: // Ping
-		{
-			if (info.lastRecv != 0)
-			{
-				uint32_t ping = info.lastRecv - info.lastPing[1];
-				_itow_s(ping, di->item.pszText, di->item.cchTextMax, 10);
-			}
-			else
-			{
-				di->item.pszText[0] = L'-';
-				di->item.pszText[1] = 0;
-			}
-		}
-		break;
+			GetPingString(info.lastRecv, info.lastPing[1], di->item.pszText, di->item.cchTextMax);
+			break;
 		case 3: // Players
 			swprintf_s(di->item.pszText, di->item.cchTextMax, L"%hu/%hu", info.info.players, info.info.maxPlayers);
 			break;
 		case 4: // Version
-		{
 			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.versionName, -1, di->item.pszText, di->item.cchTextMax);
-		}
-		break;
+			break;
 		case 5: // Gamemode
-		{
 			MultiByteToWideChar(g_browserSettings.codePage, 0, info.info.gameMode.c_str(), -1, di->item.pszText, di->item.cchTextMax);
-		}
-		break;
+			break;
 		case 6:
 		if (history) // Last Played
 		{

@@ -79,10 +79,10 @@ struct serverAllInfo
 typedef std::map<serverAddress, serverMasterListInfoValue> serverMasterList;
 typedef std::vector<serverAllInfo> serverList;
 
-inline int GetIPString(uint32_t ip, uint16_t port, wchar_t *ipstr)
+inline int GetIPString(uint32_t ip, uint16_t port, wchar_t *ipStr, size_t bufCount = 22)
 {
 	char *_ip = (char *)&(ip);
-	return swprintf_s(ipstr, 22, L"%hhu.%hhu.%hhu.%hhu:%hu", _ip[0], _ip[1], _ip[2], _ip[3], port);
+	return swprintf_s(ipStr, bufCount, L"%hhu.%hhu.%hhu.%hhu:%hu", _ip[0], _ip[1], _ip[2], _ip[3], port);
 }
 
 inline int GetIPString(serverAddress address, wchar_t *ipstr)
@@ -90,21 +90,21 @@ inline int GetIPString(serverAddress address, wchar_t *ipstr)
 	return GetIPString(address.ip, address.port, ipstr);
 }
 
-inline int GetPlayersString(uint16_t players, uint16_t maxPlayers, wchar_t *playersstr)
+inline int GetPlayersString(uint16_t players, uint16_t maxPlayers, wchar_t *playersStr, size_t bufCount = 12)
 {
-	return swprintf_s(playersstr, 12, L"%hu/%hu", players, maxPlayers);
+	return swprintf_s(playersStr, 12, L"%hu/%hu", players, maxPlayers);
 }
 
-inline void GetPingString(uint32_t lastRecv, uint32_t lastPing, wchar_t *pingsstr)
+inline void GetPingString(uint32_t lastRecv, uint32_t lastPing, wchar_t *pingStr, size_t bufCount = 12)
 {
 	if (lastRecv != 0)
 	{
 		uint32_t ping = lastRecv - lastPing;
-		_itow_s(ping, pingsstr, 12, 10);
+		_itow_s(ping, pingStr, bufCount, 10);
 	}
 	else
 	{
-		pingsstr[0] = L'-';
-		pingsstr[1] = 0;
+		pingStr[0] = L'-';
+		pingStr[1] = 0;
 	}
 }
