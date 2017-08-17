@@ -254,11 +254,7 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 				//	i = (*g_serverFilter)[i];
 
 				if (g_favoriteList.size() > i)
-				{
-					std::swap(g_favoriteList[i], g_favoriteList.back());
-					g_favoriteList.pop_back();
-					//g_favoriteList.erase(std::next(g_favoriteList.begin(), i));
-				}
+					g_favoriteList.erase(g_favoriteList.begin() + i);
 			}
 			ListView_SetItemCount(hwndFrom, g_favoriteList.size());
 			ListView_DeleteAllItems(g_hWndListViewPlayers);
