@@ -496,13 +496,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			LoadHistory();
 
-#ifdef _DEBUG
-			serverAllInfo info = {};
-			info.address.ip = 92698971;
-			info.address.port = 8192;
-			g_favoriteList.push_back(info);
-#endif
-
 			ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
 		}
 
