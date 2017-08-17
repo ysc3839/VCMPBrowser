@@ -84,6 +84,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	WSACleanup();
 
+	SaveFavorites();
 	SaveHistory();
 
 	return (int)msg.wParam;
@@ -454,6 +455,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			lvc.cx = Scale(100);
 			lvc.pszText = LoadStr(L"Map Name", IDS_MAPNAME);
 			ListView_InsertColumn(g_hWndListViewServers, 6, &lvc);
+
+			LoadFavorites();
+			ListView_SetItemCount(g_hWndListViewServers, g_favoriteList.size());
 		}
 
 		g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
