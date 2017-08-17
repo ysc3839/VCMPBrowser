@@ -244,6 +244,27 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 	if (hwndFrom == g_hWndListViewServers)
 	{
 		auto selList = ListView_GetSelectedItmes(hwndFrom);
+
+		if (id == IDM_DELETEFROMLIST)
+		{
+			selList.sort(std::greater<>());
+			for (size_t i : selList)
+			{
+				//if (g_serverFilter && g_serverFilter->size() > i) // FIXME
+				//	i = (*g_serverFilter)[i];
+
+				if (g_favoriteList.size() > i)
+				{
+					std::swap(g_favoriteList[i], g_favoriteList.back());
+					g_favoriteList.pop_back();
+					//g_favoriteList.erase(std::next(g_favoriteList.begin(), i));
+				}
+			}
+			ListView_SetItemCount(hwndFrom, g_favoriteList.size());
+			ListView_DeleteAllItems(g_hWndListViewPlayers);
+			return;
+		}
+
 		std::list<serverAllInfo> infoList;
 		auto &list = g_currentTab == 0 ? g_favoriteList : g_serversList;
 		for (size_t i : selList)
@@ -258,7 +279,11 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 		switch (id)
 		{
 		case IDM_ADDFAVORITE:
-			break;
+		{
+			for (auto info : infoList)
+				g_favoriteList.push_back(info);
+		}
+		break;
 		case IDM_COPYSERVERIP:
 		{
 			std::wstring text;
@@ -271,8 +296,6 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 			SetClipboardText(text);
 		}
 		break;
-		case IDM_DELETEFROMLIST:
-			break;
 		case IDM_COPYSERVERINFO:
 		{
 			std::wstring text;
@@ -1028,7 +1051,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						delete g_serverFilter;
 
 					g_serverFilter = new std::vector<serverList::size_type>;
-					for (serverList::size_type i = 0; i < g_serversList.size(); ++i)
+					for (serverList::size_type i = 0; i < g_serversList.size(); ++i) // FIXME: Favorite list.
 						g_serverFilter->push_back(i);
 
 					typedef bool(*compfunc)(size_t, size_t);
