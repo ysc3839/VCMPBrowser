@@ -755,44 +755,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				else if (g_currentTab == 1 || g_currentTab == 2)
 				{
-					HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, nullptr);
+					/*HWND hDialog = CreateDialog(g_hInst, MAKEINTRESOURCEW(IDD_LOADING), hWnd, nullptr);
 					SetWindowPos(hDialog, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-					UpdateWindow(hDialog);
+					UpdateWindow(hDialog);*/
+					SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Retrieving server list...");
 
-					std::string data;
-					data.reserve(2048);
+					std::thread t([](/*HWND hDialog*/) {
+						std::string data;
+						data.reserve(2048);
 
-					std::string url;
-					if (g_currentTab == 1)
-						url = g_browserSettings.masterlistURL + "/servers";
-					else
-						url = g_browserSettings.masterlistURL + "/official";
-					CURLcode curlRet = CurlRequset(url.c_str(), data, "VCMP/0.4");
-					if (curlRet == CURLE_OK)
-					{
-						serverMasterList serversList;
-						if (ParseJson(data.data(), serversList))
+						std::string url;
+						if (g_currentTab == 1)
+							url = g_browserSettings.masterlistURL + "/servers";
+						else
+							url = g_browserSettings.masterlistURL + "/official";
+						CURLcode curlRet = CurlRequset(url.c_str(), data, "VCMP/0.4");
+						if (curlRet == CURLE_OK)
 						{
-							for (auto &server : serversList)
+							serverMasterList serversList;
+							if (ParseJson(data.data(), serversList))
 							{
-								SendQuery(server.first, 'i');
-								server.second.lastPing = GetTickCount();
+								for (auto &server : serversList)
+								{
+									SendQuery(server.first, 'i');
+									server.second.lastPing = GetTickCount();
+								}
+								g_serversMasterList = new serverMasterList(serversList);
 							}
-							g_serversMasterList = new serverMasterList(serversList);
+							else
+							{
+								MessageBox(g_hMainWnd, LoadStr(L"Can't parse master list data.", IDS_MASTERLISTDATA), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
+							}
 						}
 						else
 						{
-							MessageBox(hWnd, LoadStr(L"Can't parse master list data.", IDS_MASTERLISTDATA), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
+							wchar_t message[512];
+							swprintf_s(message, LoadStr(L"Can't get information from master list.\n%hs", IDS_MASTERLISTFAILED), curl_easy_strerror(curlRet));
+							MessageBox(g_hMainWnd, message, LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 						}
-					}
-					else
-					{
-						wchar_t message[512];
-						swprintf_s(message, LoadStr(L"Can't get information from master list.\n%hs", IDS_MASTERLISTFAILED), curl_easy_strerror(curlRet));
-						MessageBox(hWnd, message, LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
-					}
-
-					DestroyWindow(hDialog);
+						SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, 0);
+						//PostMessage(hDialog, WM_CLOSE, 0, 0);
+					}/*, hDialog*/);
+					t.detach();
 				}
 				else if (g_currentTab == 3)
 				{
