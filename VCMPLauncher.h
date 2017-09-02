@@ -233,10 +233,13 @@ void CheckGameStatus(std::wstring commandLine, std::wstring vcmpDll, HANDLE hPro
 			break;
 	}
 	CloseHandle(hProcess);
+	SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, 0);
 }
 
 void LaunchGame(serverAllInfo &serverInfo)
 {
+	SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Launching game...");
+
 	bool isSteam = false;
 
 	const wchar_t *name = wcsrchr(g_browserSettings.gamePath.c_str(), L'\\');
