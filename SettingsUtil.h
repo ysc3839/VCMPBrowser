@@ -71,7 +71,7 @@ void DefaultSettings()
 	g_browserSettings.gameUpdatePassword = "";
 	g_browserSettings.masterlistURL = "http://master.vc-mp.ovh";
 	g_browserSettings.proxy = "";
-	g_browserSettings.officialColor = RGB(0, 0, 255); // Blue
+	g_browserSettings.officialColor = RGB(0, 120, 215); // Blue
 	std::fill_n(g_browserSettings.custColors, std::size(g_browserSettings.custColors), 0xFFFFFF); // White
 }
 
