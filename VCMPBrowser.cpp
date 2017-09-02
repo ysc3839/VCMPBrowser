@@ -395,6 +395,30 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 	}
 }
 
+std::string GetText(HWND hWnd)
+{
+	size_t len = GetWindowTextLengthA(hWnd) + 1;
+	if (len != 0)
+	{
+		char *text = (char *)alloca(len);
+		len = GetWindowTextA(hWnd, text, len);
+		return std::string(text, len);
+	}
+	return std::string();
+}
+
+std::wstring GetTextW(HWND hWnd)
+{
+	size_t len = GetWindowTextLengthW(hWnd) + 1;
+	if (len != 0)
+	{
+		wchar_t *text = (wchar_t *)alloca(len * sizeof(wchar_t));
+		len = GetWindowTextW(hWnd, text, len);
+		return std::wstring(text, len);
+	}
+	return std::wstring();
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static uint32_t lanLastPing = 0;
@@ -707,6 +731,49 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					ListView_SetItemCount(g_hWndListViewServers, g_favoriteList.size());
 				}
 			}
+		}
+		break;
+		case IDM_ADDSERVER:
+		{
+			DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ADDSERVER), hWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
+				switch (message)
+				{
+				case WM_INITDIALOG:
+					return (INT_PTR)TRUE;
+				case WM_COMMAND:
+					if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+					{
+						if (LOWORD(wParam) == IDOK)
+						{
+							std::string serverAddr = GetText(GetDlgItem(hDlg, IDC_SERVEREDIT));
+							if (!serverAddr.empty())
+							{
+								size_t pos = serverAddr.find_last_of(':');
+
+								uint16_t port = 0;
+								if (pos != std::string::npos)
+									port = static_cast<uint16_t>(atoi(serverAddr.substr(pos + 1).c_str()));
+
+								serverAllInfo server = {};
+								server.address.ip = inet_addr(serverAddr.substr(0, pos).c_str());
+								server.address.port = (port == 0 ? 8192 : port);
+
+								SendQuery(server.address, 'i');
+								server.lastPing[0] = GetTickCount();
+
+								g_favoriteList.push_back(server);
+
+								if (g_currentTab == 0)
+									ListView_SetItemCount(g_hWndListViewServers, g_favoriteList.size());
+							}
+						}
+						EndDialog(hDlg, LOWORD(wParam));
+						return (INT_PTR)TRUE;
+					}
+					break;
+				}
+				return (INT_PTR)FALSE;
+			});
 		}
 		break;
 		default:
@@ -1451,30 +1518,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return (INT_PTR)FALSE;
-}
-
-std::string GetText(HWND hWnd)
-{
-	size_t len = GetWindowTextLengthA(hWnd) + 1;
-	if (len != 0)
-	{
-		char *text = (char *)alloca(len);
-		len = GetWindowTextA(hWnd, text, len);
-		return std::string(text, len);
-	}
-	return std::string();
-}
-
-std::wstring GetTextW(HWND hWnd)
-{
-	size_t len = GetWindowTextLengthW(hWnd) + 1;
-	if (len != 0)
-	{
-		wchar_t *text = (wchar_t *)alloca(len * sizeof(wchar_t));
-		len = GetWindowTextW(hWnd, text, len);
-		return std::wstring(text, len);
-	}
-	return std::wstring();
 }
 
 void ShowSettings()
