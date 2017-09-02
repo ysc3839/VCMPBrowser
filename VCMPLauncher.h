@@ -1,6 +1,7 @@
 #pragma once
 
 void ShowSettings();
+void CheckGameStatus(std::wstring commandLine, std::wstring vcmpDll, HANDLE hProcess, bool isSteam);
 
 int MessageBoxPrintError(HWND hWnd, LPCWSTR lpText, ...)
 {
@@ -12,14 +13,8 @@ int MessageBoxPrintError(HWND hWnd, LPCWSTR lpText, ...)
 	return MessageBox(hWnd, buffer, LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 }
 
-void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const char* password, const wchar_t* gtaExe, const wchar_t* vcmpDll)
+void LaunchVCMP(wchar_t* commandLine, const wchar_t* gtaExe, const wchar_t* vcmpDll)
 {
-	wchar_t commandLine[128];
-	if (password != nullptr)
-		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", IP, port, playerName, password);
-	else
-		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", IP, port, playerName);
-
 	// Get GTA directory.
 	wchar_t GTADriectory[MAX_PATH];
 	wcscpy_s(GTADriectory, MAX_PATH, gtaExe);
@@ -59,7 +54,11 @@ void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 								if (GetExitCodeThread(hInjectThread, &exitCode))
 								{
 									if (exitCode != 0)
+									{
 										ResumeThread(pi.hThread);
+										std::thread check(CheckGameStatus, std::wstring(commandLine), std::wstring(vcmpDll), pi.hProcess, false);
+										check.detach();
+									}
 									else
 									{
 										TerminateProcess(pi.hProcess, 0);
@@ -91,21 +90,14 @@ void LaunchVCMP(const char* IP, uint16_t port, const char* playerName, const cha
 		else
 			MessageBoxPrintError(g_hMainWnd, LoadStr(L"VirtualAllocEx failed! (%u)", IDS_VIRTUALALLOCFAIL), GetLastError());
 
-		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 	}
 	else
 		MessageBoxPrintError(g_hMainWnd, LoadStr(L"CreateProcess failed! (%u)", IDS_CREATEPROCESSFAIL), GetLastError());
 }
 
-void LaunchSteamVCMP(const char* IP, uint16_t port, const char* playerName, const char* password, const wchar_t* gtaExe, const wchar_t* vcmpDll)
+void LaunchSteamVCMP(wchar_t* commandLine, const wchar_t* gtaExe, const wchar_t* vcmpDll)
 {
-	wchar_t commandLine[128];
-	if (password != nullptr)
-		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", IP, port, playerName, password);
-	else
-		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", IP, port, playerName);
-
 	// Get GTA directory.
 	wchar_t GTADriectory[MAX_PATH];
 	wcscpy_s(GTADriectory, MAX_PATH, gtaExe);
@@ -175,6 +167,8 @@ void LaunchSteamVCMP(const char* IP, uint16_t port, const char* playerName, cons
 										if (success)
 										{
 											ResumeThread(pi.hThread);
+											std::thread check(CheckGameStatus, std::wstring(commandLine), std::wstring(vcmpDll), pi.hProcess, true);
+											check.detach();
 										}
 										else
 											MessageBoxPrintError(g_hMainWnd, LoadStr(L"WriteProcessMemory failed! (%u)", IDS_WRITEMEMORYFAIL), GetLastError());
@@ -205,28 +199,44 @@ void LaunchSteamVCMP(const char* IP, uint16_t port, const char* playerName, cons
 		else
 			MessageBoxPrintError(g_hMainWnd, LoadStr(L"VirtualAllocEx failed! (%u)", IDS_VIRTUALALLOCFAIL), GetLastError());
 
-		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 	}
 	else
 		MessageBoxPrintError(g_hMainWnd, LoadStr(L"CreateProcess failed! (%u)", IDS_CREATEPROCESSFAIL), GetLastError());
 }
 
+void CheckGameStatus(std::wstring commandLine, std::wstring vcmpDll, HANDLE hProcess, bool isSteam)
+{
+	DWORD t = GetTickCount();
+	while (1)
+	{
+		DWORD retval = WaitForSingleObject(hProcess, 500);
+		if (retval == WAIT_OBJECT_0)
+		{
+			if (GetTickCount() - t < 3000) // Less than 3s
+			{
+				if (MessageBox(g_hMainWnd, L"Game process was alive less than 3 sec, do you want to launch again?", nullptr, MB_YESNO | MB_ICONQUESTION) == IDYES)
+				{
+					wchar_t *_commandLine = _wcsdup(commandLine.c_str());
+					if (isSteam)
+						LaunchSteamVCMP(_commandLine, g_browserSettings.gamePath.c_str(), vcmpDll.c_str());
+					else
+						LaunchVCMP(_commandLine, g_browserSettings.gamePath.c_str(), vcmpDll.c_str());
+					free(_commandLine);
+				}
+			}
+			break;
+		}
+		else if (retval == WAIT_FAILED)
+			break;
+		else if (GetTickCount() - t > 3000)
+			break;
+	}
+	CloseHandle(hProcess);
+}
+
 void LaunchGame(serverAllInfo &serverInfo)
 {
-	if (strlen(g_browserSettings.playerName) == 0)
-	{
-		MessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
-		ShowSettings();
-		return;
-	}
-	else if (g_browserSettings.gamePath.empty())
-	{
-		MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
-		ShowSettings();
-		return;
-	}
-
 	bool isSteam = false;
 
 	const wchar_t *name = wcsrchr(g_browserSettings.gamePath.c_str(), L'\\');
@@ -244,8 +254,14 @@ void LaunchGame(serverAllInfo &serverInfo)
 	char *ip = (char *)&(serverInfo.address.ip);
 	snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
 
+	wchar_t commandLine[128];
+	//if (password != nullptr)
+		//swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr);
+	//else
+		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName);
+
 	if (isSteam)
-		LaunchSteamVCMP(ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
+		LaunchSteamVCMP(commandLine, g_browserSettings.gamePath.c_str(), vcmpDll);
 	else
-		LaunchVCMP(ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr, g_browserSettings.gamePath.c_str(), vcmpDll);
+		LaunchVCMP(commandLine, g_browserSettings.gamePath.c_str(), vcmpDll);
 }

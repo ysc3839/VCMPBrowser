@@ -948,53 +948,71 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case LVN_ITEMACTIVATE:
 		{
 			LPNMITEMACTIVATE nmia = (LPNMITEMACTIVATE)lParam;
-			if (nmia->hdr.hwndFrom == g_hWndListViewServers)
+			if (nmia->hdr.hwndFrom == g_hWndListViewServers || nmia->hdr.hwndFrom == g_hWndListViewHistory)
 			{
-				size_t i = nmia->iItem;
-				if (g_serverFilter && g_serverFilter->size() > i)
-					i = (*g_serverFilter)[i];
-				if (i != -1 && g_serversList.size() > i)
+				if (strlen(g_browserSettings.playerName) == 0)
 				{
-					g_serversList[i].lastPlayed = time(nullptr);
-
-					auto address = g_serversList[i].address;
-					size_t index = -1;
-					for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
-					{
-						if (it->address == address)
-						{
-							index = it - g_historyList.begin();
-							break;
-						}
-					}
-
-					if (index != -1)
-						g_historyList.erase(g_historyList.begin() + index);
-
-					g_historyList.push_back(g_serversList[i]);
-
-					ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
-
-					LaunchGame(g_serversList[i]);
+					MessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+					ShowSettings();
+					break;
 				}
-			}
-			else if (nmia->hdr.hwndFrom == g_hWndListViewHistory)
-			{
-				size_t i = nmia->iItem;
-				if (g_serverFilter && g_serverFilter->size() > i)
-					i = (*g_serverFilter)[i];
-				auto it = g_historyList.rbegin() + i;
-				if (it != g_historyList.rend())
+				else if (g_browserSettings.gamePath.empty())
 				{
-					it->lastPlayed = time(nullptr);
+					MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+					ShowSettings();
+					break;
+				}
 
-					serverAllInfo serverInfo = *it;
-					g_historyList.erase(--(it.base()));
-					g_historyList.push_back(serverInfo);
+				if (nmia->hdr.hwndFrom == g_hWndListViewServers)
+				{
+					auto &list = g_currentTab == 0 ? g_favoriteList : g_serversList;
 
-					ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
+					size_t i = nmia->iItem;
+					if (g_serverFilter && g_serverFilter->size() > i)
+						i = (*g_serverFilter)[i];
+					if (i != -1 && list.size() > i && list[i].lastRecv != 0) // Online
+					{
+						list[i].lastPlayed = time(nullptr);
 
-					LaunchGame(serverInfo);
+						auto address = list[i].address;
+						size_t index = -1;
+						for (auto it = g_historyList.begin(); it != g_historyList.end(); ++it)
+						{
+							if (it->address == address)
+							{
+								index = it - g_historyList.begin();
+								break;
+							}
+						}
+
+						if (index != -1)
+							g_historyList.erase(g_historyList.begin() + index);
+
+						g_historyList.push_back(list[i]);
+
+						ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
+
+						LaunchGame(list[i]);
+					}
+				}
+				else if (nmia->hdr.hwndFrom == g_hWndListViewHistory)
+				{
+					size_t i = nmia->iItem;
+					if (g_serverFilter && g_serverFilter->size() > i)
+						i = (*g_serverFilter)[i];
+					auto it = g_historyList.rbegin() + i;
+					if (it != g_historyList.rend() && it->lastRecv != 0) // Online
+					{
+						it->lastPlayed = time(nullptr);
+
+						serverAllInfo serverInfo = *it;
+						g_historyList.erase(--(it.base()));
+						g_historyList.push_back(serverInfo);
+
+						ListView_SetItemCount(g_hWndListViewHistory, g_historyList.size());
+
+						LaunchGame(serverInfo);
+					}
 				}
 			}
 		}
