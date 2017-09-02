@@ -289,6 +289,7 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 			{
 				GetIPString(info.address, ipstr);
 				text += ipstr;
+				text += L"\r\n";
 			}
 			SetClipboardText(text);
 		}
