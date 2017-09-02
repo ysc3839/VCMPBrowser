@@ -1250,13 +1250,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							serverMasterListInfo masterInfo;
 							if (g_currentTab == 1 || g_currentTab == 2)
 							{
-								auto server = g_serversMasterList->find(address);
-								if (server != g_serversMasterList->end())
+								if (g_serversMasterList)
 								{
-									found = true;
-									masterInfo.address = server->first;
-									masterInfo.isOfficial = server->second.isOfficial;
-									masterInfo.lastPing = server->second.lastPing;
+									auto server = g_serversMasterList->find(address);
+									if (server != g_serversMasterList->end())
+									{
+										found = true;
+										masterInfo.address = server->first;
+										masterInfo.isOfficial = server->second.isOfficial;
+										masterInfo.lastPing = server->second.lastPing;
+									}
 								}
 							}
 							else if (g_currentTab == 3) // Lan
