@@ -242,7 +242,7 @@ void SetClipboardText(std::wstring text)
 
 void HandleMenuSelect(HWND hwndFrom, int id)
 {
-	if (hwndFrom == g_hWndListViewServers)
+	if (hwndFrom == g_hWndListViewServers || hwndFrom == g_hWndListViewHistory)
 	{
 		auto selList = ListView_GetSelectedItmes(hwndFrom);
 
@@ -263,14 +263,30 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 		}
 
 		std::list<serverAllInfo> infoList;
-		auto &list = g_currentTab == 0 ? g_favoriteList : g_serversList;
-		for (size_t i : selList)
+		if (hwndFrom != g_hWndListViewHistory)
 		{
-			if (g_serverFilter && g_serverFilter->size() > i)
-				i = (*g_serverFilter)[i];
+			auto &list = g_currentTab == 0 ? g_favoriteList : g_serversList;
+			for (size_t i : selList)
+			{
+				if (g_serverFilter && g_serverFilter->size() > i)
+					i = (*g_serverFilter)[i];
 
-			if (list.size() > i)
-				infoList.push_back(list[i]);
+				if (list.size() > i)
+					infoList.push_back(list[i]);
+			}
+		}
+		else
+		{
+			for (size_t i : selList)
+			{
+				if (g_serverFilter && g_serverFilter->size() > i)
+					i = (*g_serverFilter)[i];
+
+				i = g_historyList.size() - i - 1;
+
+				if (g_historyList.size() > i)
+					infoList.push_back(g_historyList[i]);
+			}
 		}
 
 		switch (id)
@@ -337,9 +353,6 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 		}
 		break;
 		}
-	}
-	else if (hwndFrom == g_hWndListViewHistory)
-	{
 	}
 	else if (hwndFrom == g_hWndListViewPlayers)
 	{
@@ -1143,6 +1156,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			else if (pnmitem->hdr.hwndFrom == g_hWndListViewHistory)
 			{
+				menuID = MAKEINTRESOURCE(IDR_SERVERMENU);
 			}
 			else if (pnmitem->hdr.hwndFrom == g_hWndListViewPlayers)
 			{
