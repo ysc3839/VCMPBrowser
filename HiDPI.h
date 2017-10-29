@@ -3,8 +3,10 @@
 uint32_t dpiScale;
 
 // https://stackoverflow.com/a/25065519
-#define muldiv(number, numerator, denominator) \
-		(int)(((long)number * numerator + (denominator >> 1)) / denominator)
+int muldiv(int number, int numerator, int denominator)
+{
+	return (int)(((long)number * numerator + (denominator >> 1)) / denominator);
+}
 
 void SetDPIAware()
 {
