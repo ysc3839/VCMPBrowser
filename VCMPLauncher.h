@@ -10,7 +10,7 @@ int MessageBoxPrintError(HWND hWnd, LPCWSTR lpText, ...)
 	va_start(argList, lpText);
 	vswprintf_s(buffer, lpText, argList);
 	va_end(argList);
-	return MessageBox(hWnd, buffer, LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
+	return TDMessageBox(hWnd, buffer, LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 }
 
 void LaunchVCMP(wchar_t* commandLine, const wchar_t* gtaExe, const wchar_t* vcmpDll)
@@ -62,14 +62,14 @@ void LaunchVCMP(wchar_t* commandLine, const wchar_t* gtaExe, const wchar_t* vcmp
 									else
 									{
 										TerminateProcess(pi.hProcess, 0);
-										MessageBox(g_hMainWnd, LoadStr(L"Injected thread failed!", IDS_INJECTFAIL), LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
+										TDMessageBox(g_hMainWnd, LoadStr(L"Injected thread failed!", IDS_INJECTFAIL), LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 									}
 								}
 								else
 									MessageBoxPrintError(g_hMainWnd, LoadStr(L"GetExitCodeThread failed! (%u)", IDS_GETEXITCODEFAIL), GetLastError());
 							}
 							else
-								MessageBox(g_hMainWnd, LoadStr(L"Injected thread hung!", IDS_THREADHUNG), LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
+								TDMessageBox(g_hMainWnd, LoadStr(L"Injected thread hung!", IDS_THREADHUNG), LoadStr(L"Error", IDS_ERROR), MB_ICONERROR);
 
 							CloseHandle(hInjectThread);
 						}
@@ -215,7 +215,7 @@ void CheckGameStatus(std::wstring commandLine, std::wstring vcmpDll, HANDLE hPro
 		{
 			if (GetTickCount() - t < 3000) // Less than 3s
 			{
-				if (MessageBox(g_hMainWnd, L"Game process was alive less than 3 sec, do you want to launch again?", nullptr, MB_YESNO | MB_ICONQUESTION) == IDYES)
+				if (TDMessageBox(g_hMainWnd, L"Game process was alive less than 3 sec, do you want to launch again?", nullptr, MB_YESNO | MB_ICONQUESTION) == IDYES)
 				{
 					wchar_t *_commandLine = _wcsdup(commandLine.c_str());
 					if (isSteam)

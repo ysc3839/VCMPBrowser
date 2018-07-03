@@ -48,6 +48,9 @@
     <ClInclude Include="ServerInfoUtil.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="TaskDialog.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VCMPBrowser.cpp">

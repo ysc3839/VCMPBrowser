@@ -28,6 +28,7 @@ HWND g_hWndStatusBar;
 #include "SettingsUtil.h"
 #include "MasterListUtil.h"
 #include "ServerQueryUtil.h"
+#include "TaskDialog.h"
 #include "DownloadUtil.h"
 #include "VCMPLauncher.h"
 
@@ -849,14 +850,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							}
 							else
 							{
-								MessageBox(g_hMainWnd, LoadStr(L"Can't parse master list data.", IDS_MASTERLISTDATA), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
+								TDMessageBox(g_hMainWnd, LoadStr(L"Can't parse master list data.", IDS_MASTERLISTDATA), LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 							}
 						}
 						else
 						{
 							wchar_t message[512];
 							swprintf_s(message, LoadStr(L"Can't get information from master list.\n%hs", IDS_MASTERLISTFAILED), curl_easy_strerror(curlRet));
-							MessageBox(g_hMainWnd, message, LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
+							TDMessageBox(g_hMainWnd, message, LoadStr(L"Error", IDS_ERROR), MB_ICONWARNING);
 						}
 						SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, 0);
 						//PostMessage(hDialog, WM_CLOSE, 0, 0);
@@ -1035,13 +1036,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				if (strlen(g_browserSettings.playerName) == 0)
 				{
-					MessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+					TDMessageBox(g_hMainWnd, LoadStr(L"You have not set your player name!", IDS_NONAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
 					ShowSettings();
 					break;
 				}
 				else if (g_browserSettings.gamePath.empty())
 				{
-					MessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+					TDMessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
 					ShowSettings();
 					break;
 				}

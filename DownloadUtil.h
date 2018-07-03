@@ -338,7 +338,7 @@ void UpdateBrowser()
 		wchar_t message[512];
 		swprintf_s(message, L"A new version of VCMPBrowser is available!\nVersion: %hs\nRelease Date: %hs\nDo you want to update?", g_updateInfo.version.c_str(), g_updateInfo.date.c_str());
 
-		if (MessageBox(g_hMainWnd, message, LoadStr(L"Information", IDS_INFORMATION), MB_YESNO | MB_ICONINFORMATION) != IDYES)
+		if (TDMessageBox(g_hMainWnd, message, LoadStr(L"Information", IDS_INFORMATION), MB_YESNO | MB_ICONINFORMATION) != IDYES)
 			return;
 
 		DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, DialogProc, (LPARAM)(DLGPROC)[](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
