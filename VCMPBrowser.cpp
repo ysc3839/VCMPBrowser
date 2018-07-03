@@ -1468,12 +1468,23 @@ void ShowLicenseWindow(HWND hWnd, int ID)
 		if (hResData != nullptr)
 		{
 			DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_LICENSE), hWnd, [](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
+				static bool firstCreate = false;
 				switch (message)
 				{
 				case WM_INITDIALOG:
 				{
+					firstCreate = false;
 					SetDlgItemTextA(hDlg, IDC_EDIT, (LPCSTR)lParam);
 					return (INT_PTR)TRUE;
+				}
+				case WM_COMMAND:
+				{
+					if (!firstCreate && HIWORD(wParam) == EN_SETFOCUS)
+					{
+						Edit_SetSel((HWND)lParam, 0, 0);
+						firstCreate = true;
+					}
+					break;
 				}
 				case WM_CLOSE:
 					EndDialog(hDlg, 0);
