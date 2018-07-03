@@ -1,0 +1,3 @@
+*.rc diff=utf16
+resource.h diff=utf16
+/langs/** !diff
