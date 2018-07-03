@@ -67,9 +67,9 @@ void DefaultSettings()
 	memset(g_browserSettings.playerName, 0, sizeof(g_browserSettings.playerName));
 	g_browserSettings.gamePath = L"";
 	g_browserSettings.gameUpdateFreq = START;
-	g_browserSettings.gameUpdateURL = "http://u04.maxorator.com";
+	g_browserSettings.gameUpdateURL = "http://u04.vc-mp.org";
 	g_browserSettings.gameUpdatePassword = "";
-	g_browserSettings.masterlistURL = "http://master.vc-mp.ovh";
+	g_browserSettings.masterlistURL = "http://master.vc-mp.org";
 	g_browserSettings.proxy = "";
 	g_browserSettings.officialColor = RGB(0, 120, 215); // Blue
 	std::fill_n(g_browserSettings.custColors, std::size(g_browserSettings.custColors), 0xFFFFFF); // White
