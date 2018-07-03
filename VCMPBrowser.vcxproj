@@ -110,7 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="langs\en-US.rc">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild>true</ExcludedFromBuild>
     </ResourceCompile>
     <ResourceCompile Include="VCMPBrowser.rc" />
   </ItemGroup>
