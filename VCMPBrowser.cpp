@@ -65,8 +65,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return FALSE;
 
-	CrcGenerateTable();
-
 	MyRegisterClass(hInstance);
 
 	if (!InitInstance(hInstance, nCmdShow))

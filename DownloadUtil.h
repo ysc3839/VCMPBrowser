@@ -82,91 +82,116 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 
 bool Extract7z(const char *fileName)
 {
+	#define kInputBufSize ((size_t)1 << 18)
+	static const ISzAlloc szAlloc = { SzAlloc, SzFree };
+
 	CFileInStream archiveStream;
 	if (InFile_Open(&archiveStream.file, fileName) == 0)
 	{
-		CLookToRead lookStream;
+		CLookToRead2 lookStream;
 		FileInStream_CreateVTable(&archiveStream);
-		LookToRead_CreateVTable(&lookStream, False);
+		LookToRead2_CreateVTable(&lookStream, False);
+		lookStream.buf = NULL;
 
-		lookStream.realStream = &archiveStream.s;
-		LookToRead_Init(&lookStream);
+		SRes res = SZ_OK;
+
+		{
+			lookStream.buf = (Byte *)ISzAlloc_Alloc(&szAlloc, kInputBufSize);
+			if (!lookStream.buf)
+				res = SZ_ERROR_MEM;
+			else
+			{
+				lookStream.bufSize = kInputBufSize;
+				lookStream.realStream = &archiveStream.vt;
+				LookToRead2_Init(&lookStream);
+			}
+		}
+
+		static bool crcTableGenerated = false;
+		if (!crcTableGenerated)
+		{
+			CrcGenerateTable();
+			crcTableGenerated = true;
+		}
 
 		CSzArEx db;
 		SzArEx_Init(&db);
 
-		static ISzAlloc szAlloc = { SzAlloc, SzFree };
-
-		SRes res = SzArEx_Open(&db, &lookStream.s, &szAlloc, &szAlloc);
 		if (res == SZ_OK)
 		{
-			uint32_t blockIndex = 0xFFFFFFFF;
-			uint8_t *outBuffer = 0;
-			size_t outBufferSize = 0;
-
-			wchar_t *nameBuf = nullptr;
-			size_t buflen = 0;
-
-			for (size_t i = 0; i < db.NumFiles; i++)
+			res = SzArEx_Open(&db, &lookStream.vt, &szAlloc, &szAlloc);
+			if (res == SZ_OK)
 			{
-				size_t namelen = SzArEx_GetFileNameUtf16(&db, i, NULL);
-				if (namelen > buflen)
+				uint32_t blockIndex = 0xFFFFFFFF;
+				Byte *outBuffer = 0;
+				size_t outBufferSize = 0;
+
+				wchar_t *nameBuf = nullptr;
+				size_t buflen = 0;
+
+				for (size_t i = 0; i < db.NumFiles; i++)
 				{
-					free(nameBuf);
-					buflen = namelen;
-					nameBuf = (wchar_t *)malloc(buflen * sizeof(wchar_t));
-					if (nameBuf == nullptr)
+					size_t namelen = SzArEx_GetFileNameUtf16(&db, i, NULL);
+					if (namelen > buflen)
 					{
-						res = SZ_ERROR_MEM;
-						break;
+						free(nameBuf);
+						buflen = namelen;
+						nameBuf = (wchar_t *)malloc(buflen * sizeof(wchar_t));
+						if (nameBuf == nullptr)
+						{
+							res = SZ_ERROR_MEM;
+							break;
+						}
 					}
-				}
 
-				SzArEx_GetFileNameUtf16(&db, i, (UInt16 *)nameBuf);
+					SzArEx_GetFileNameUtf16(&db, i, (UInt16 *)nameBuf);
 
-				if (wcsstr(nameBuf, L"../") != nullptr)
-					continue;
+					if (wcsstr(nameBuf, L"../") != nullptr)
+						continue;
 
-				for (size_t j = 0; nameBuf[j] != 0; j++)
-					if (nameBuf[j] == L'/')
+					for (size_t j = 0; nameBuf[j] != 0; j++)
+						if (nameBuf[j] == L'/')
+						{
+							nameBuf[j] = 0;
+							_wmkdir(nameBuf);
+							nameBuf[j] = L'\\';
+						}
+
+					FILE *outFile;
+					bool isDir = SzArEx_IsDir(&db, i);
+					if (isDir)
 					{
-						nameBuf[j] = 0;
 						_wmkdir(nameBuf);
-						nameBuf[j] = L'\\';
+						continue;
 					}
-
-				FILE *outFile;
-				bool isDir = SzArEx_IsDir(&db, i);
-				if (isDir)
-				{
-					_wmkdir(nameBuf);
-					continue;
-				}
-				else
-				{
-					size_t offset = 0;
-					size_t outSizeProcessed = 0;
-					res = SzArEx_Extract(&db, &lookStream.s, i, &blockIndex, &outBuffer, &outBufferSize, &offset, &outSizeProcessed, &szAlloc, &szAlloc);
-					if (res != SZ_OK)
-						break;
-
-					outFile = _wfopen(nameBuf, L"wb+");
-					if (outFile == nullptr)
+					else
 					{
-						res = SZ_ERROR_WRITE;
-						break;
+						size_t offset = 0;
+						size_t outSizeProcessed = 0;
+						res = SzArEx_Extract(&db, &lookStream.vt, i, &blockIndex, &outBuffer, &outBufferSize, &offset, &outSizeProcessed, &szAlloc, &szAlloc);
+						if (res != SZ_OK)
+							break;
+
+						outFile = _wfopen(nameBuf, L"wb+");
+						if (outFile == nullptr)
+						{
+							res = SZ_ERROR_WRITE;
+							break;
+						}
+						if (fwrite(outBuffer + offset, 1, outSizeProcessed, outFile) != outSizeProcessed)
+						{
+							res = SZ_ERROR_WRITE;
+							break;
+						}
+						fclose(outFile);
 					}
-					if (fwrite(outBuffer + offset, 1, outSizeProcessed, outFile) != outSizeProcessed)
-					{
-						res = SZ_ERROR_WRITE;
-						break;
-					}
-					fclose(outFile);
 				}
+				ISzAlloc_Free(&szAlloc, outBuffer);
+
+				free(nameBuf);
+				SzArEx_Free(&db, &szAlloc);
 			}
-
-			free(nameBuf);
-			SzArEx_Free(&db, &szAlloc);
+			ISzAlloc_Free(&szAlloc, lookStream.buf);
 		}
 		File_Close(&archiveStream.file);
 		return res == SZ_OK;
