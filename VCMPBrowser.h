@@ -10,6 +10,7 @@
 #include <map>
 #include <fstream>
 #include <list>
+#include <set>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

@@ -85,6 +85,9 @@ bool Extract7z(const char *fileName)
 	#define kInputBufSize ((size_t)1 << 18)
 	static const ISzAlloc szAlloc = { SzAlloc, SzFree };
 
+	struct mycompare { bool operator()(const wchar_t *a, const wchar_t *b) const { return _wcsicmp(a, b) < 0; } };
+	static const std::set<const wchar_t*, mycompare> excludeFilenames = { L"Thumbs.db" };
+
 	CFileInStream archiveStream;
 	if (InFile_Open(&archiveStream.file, fileName) == 0)
 	{
@@ -126,8 +129,8 @@ bool Extract7z(const char *fileName)
 				Byte *outBuffer = 0;
 				size_t outBufferSize = 0;
 
-				wchar_t *nameBuf = nullptr;
-				size_t buflen = 0;
+				size_t buflen = 32;
+				wchar_t *nameBuf = (wchar_t *)malloc(buflen * sizeof(wchar_t));
 
 				for (size_t i = 0; i < db.NumFiles; i++)
 				{
@@ -149,41 +152,52 @@ bool Extract7z(const char *fileName)
 					if (wcsstr(nameBuf, L"../") != nullptr)
 						continue;
 
-					for (size_t j = 0; nameBuf[j] != 0; j++)
+					/*for (size_t j = 0; nameBuf[j] != 0; j++)
 						if (nameBuf[j] == L'/')
 						{
 							nameBuf[j] = 0;
 							_wmkdir(nameBuf);
 							nameBuf[j] = L'\\';
-						}
+						}*/
 
-					FILE *outFile;
 					bool isDir = SzArEx_IsDir(&db, i);
 					if (isDir)
 					{
-						_wmkdir(nameBuf);
+						CreateDirectoryW(nameBuf, nullptr);
 						continue;
 					}
 					else
 					{
+						wchar_t *filename = wcsrchr(nameBuf, L'/');
+						if (filename)
+							filename++;
+						else
+							filename = nameBuf;
+
+						if (excludeFilenames.find(filename) != excludeFilenames.cend())
+							continue;
+
 						size_t offset = 0;
 						size_t outSizeProcessed = 0;
 						res = SzArEx_Extract(&db, &lookStream.vt, i, &blockIndex, &outBuffer, &outBufferSize, &offset, &outSizeProcessed, &szAlloc, &szAlloc);
 						if (res != SZ_OK)
 							break;
 
-						outFile = _wfopen(nameBuf, L"wb+");
+						FILE *outFile = _wfopen(nameBuf, L"wb+");
 						if (outFile == nullptr)
 						{
 							res = SZ_ERROR_WRITE;
 							break;
 						}
-						if (fwrite(outBuffer + offset, 1, outSizeProcessed, outFile) != outSizeProcessed)
+
+						size_t outSize = fwrite(outBuffer + offset, 1, outSizeProcessed, outFile);
+						fclose(outFile);
+
+						if (outSize != outSizeProcessed)
 						{
 							res = SZ_ERROR_WRITE;
 							break;
 						}
-						fclose(outFile);
 					}
 				}
 				ISzAlloc_Free(&szAlloc, outBuffer);
