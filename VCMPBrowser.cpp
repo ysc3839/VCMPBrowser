@@ -775,6 +775,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			});
 		}
 		break;
+		case IDM_TOOLS_BUILDMODE:
+		{
+			if (g_browserSettings.gamePath.empty())
+			{
+				TDMessageBox(g_hMainWnd, LoadStr(L"You have not set your game path!", IDS_NOGAME), LoadStr(L"Information", IDS_INFORMATION), MB_ICONINFORMATION);
+				ShowSettings();
+				break;
+			}
+			wchar_t commandLine[] = L"-d";
+			LaunchGame(commandLine, "04rel006"); // TODO: Select version.
+		}
+		break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}

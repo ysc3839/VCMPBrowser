@@ -236,7 +236,22 @@ void CheckGameStatus(std::wstring commandLine, std::wstring vcmpDll, HANDLE hPro
 	SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, 0);
 }
 
-void LaunchGame(serverAllInfo &serverInfo)
+wchar_t* ServerInfoToCommandLine(serverAllInfo &serverInfo)
+{
+	char ipstr[16];
+	char *ip = (char *)&(serverInfo.address.ip);
+	snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
+
+	static wchar_t commandLine[128];
+	//if (password != nullptr)
+	//swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr);
+	//else
+	swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName);
+
+	return commandLine;
+}
+
+void LaunchGame(wchar_t *commandLine, const char *versionName)
 {
 	SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Launching game...");
 
@@ -247,24 +262,19 @@ void LaunchGame(serverAllInfo &serverInfo)
 		isSteam = true;
 
 	wchar_t vcmpDll[MAX_PATH];
-	swprintf(vcmpDll, MAX_PATH, L"%s%hs\\%s", g_exePath, serverInfo.info.versionName, isSteam ? L"vcmp-steam.dll" : L"vcmp-game.dll");
+	swprintf(vcmpDll, MAX_PATH, L"%s%hs\\%s", g_exePath, versionName, isSteam ? L"vcmp-steam.dll" : L"vcmp-game.dll");
 
 	if (_waccess(vcmpDll, 0) == -1)
-		if (!DownloadVCMPGame(serverInfo.info.versionName, g_browserSettings.gameUpdatePassword.c_str()))
+		if (!DownloadVCMPGame(versionName, g_browserSettings.gameUpdatePassword.c_str()))
 			return;
-
-	char ipstr[16];
-	char *ip = (char *)&(serverInfo.address.ip);
-	snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
-
-	wchar_t commandLine[128];
-	//if (password != nullptr)
-		//swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr);
-	//else
-		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName);
 
 	if (isSteam)
 		LaunchSteamVCMP(commandLine, g_browserSettings.gamePath.c_str(), vcmpDll);
 	else
 		LaunchVCMP(commandLine, g_browserSettings.gamePath.c_str(), vcmpDll);
+}
+
+void LaunchGame(serverAllInfo &serverInfo)
+{
+	LaunchGame(ServerInfoToCommandLine(serverInfo), serverInfo.info.versionName);
 }
