@@ -292,15 +292,27 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 		{
 		case IDM_ADDFAVORITE:
 		{
-			for (auto info : infoList)
-				g_favoriteList.push_back(info);
+			for (const auto &info : infoList)
+			{
+				bool found = false;
+				for (const auto &server : g_favoriteList)
+				{
+					if (info.address == server.address)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+					g_favoriteList.push_back(info);
+			}
 		}
 		break;
 		case IDM_COPYSERVERIP:
 		{
 			std::wstring text;
 			wchar_t ipstr[24];
-			for (auto info : infoList)
+			for (const auto &info : infoList)
 			{
 				GetIPString(info.address, ipstr);
 				text += ipstr;

@@ -2,12 +2,12 @@
 
 struct serverAddress
 {
-	bool operator==(const serverAddress &rhs)
+	bool operator==(const serverAddress &rhs) const
 	{
 		return (this->ip == rhs.ip && this->port == rhs.port);
 	}
 
-	bool operator!=(const serverAddress &rhs)
+	bool operator!=(const serverAddress &rhs) const
 	{
 		return !(*this == rhs);
 	}
