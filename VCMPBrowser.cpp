@@ -56,7 +56,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SetThreadUILanguage(languages[g_browserSettings.language]);
 	InitMUILanguage(languages[g_browserSettings.language]);
 
-	SetDPIAware();
+	//SetDPIAware();
 	InitDPIScale();
 
 	WSADATA wsaData;
