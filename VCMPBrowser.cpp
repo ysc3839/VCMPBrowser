@@ -666,6 +666,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 
+			for (auto &server : g_favoriteList)
+			{
+				SendQuery(server.address, 'i');
+				server.lastPing[0] = GetTickCount();
+			}
+
 			return 0;
 		} while (0);
 	}
