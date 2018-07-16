@@ -8,4 +8,11 @@ A new VCMP browser.
 * Lan server search.
 * More......
 # Build
-VS2015
+## Build curl
+This project uses [vcpkg](https://github.com/Microsoft/vcpkg) to build curl.
+
+After installing vcpkg, add `set(CURL_USE_WINSSL ON)` to `<vcpkg_dir>\triplets\x86-windows-static.cmake`.
+
+It will let curl use Windows' SSL library instead of OpenSSL.
+
+Then run `vcpkg install curl --triplet x86-windows-static`.
