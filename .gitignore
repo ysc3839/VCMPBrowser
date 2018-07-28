@@ -213,4 +213,6 @@ ModelManifest.xml
 *.opendb
 *.db
 
-venv/
+*.po
+*.pot
+*.rc
