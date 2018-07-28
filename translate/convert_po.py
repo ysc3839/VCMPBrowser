@@ -27,11 +27,14 @@ class myrerc(po2rc.rerc):
         six.text_type = orig_six_text_type
         return retval
 
-if __name__ == '__main__':
+def convert_to_rc(infilename, outfilename, lang, sublang):
     po2rc.rc.rcfile = gen_pot.myrcfile
     po2rc.rerc = myrerc
 
-    infile = open('en-US.po', 'rb')
-    outfile = open('test.rc', 'w', encoding='utf-8')
+    infile = open(infilename, 'rb')
+    outfile = open(outfilename, 'w', encoding='utf-8')
     templatefile = open('../langs/en-US.rc', 'r', encoding='utf-8')
-    po2rc.convertrc(infile, outfile, templatefile, lang='LANG_ENGLISH', sublang='SUBLANG_ENGLISH_US')
+    po2rc.convertrc(infile, outfile, templatefile, lang=lang, sublang=sublang)
+
+if __name__ == '__main__':
+    convert_to_rc('en-US.po', 'test.rc', 'LANG_ENGLISH', 'SUBLANG_ENGLISH_US')

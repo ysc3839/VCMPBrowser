@@ -1,10 +1,11 @@
 #pragma code_page(65001)
 
 #include "en-US.rc"
-#include "ar-AR.rc"
-#include "es-ES.rc"
-#include "nl-NL.rc"
-#include "pl-PL.rc"
+#include "ar.rc"
+#include "es.rc"
+#include "nl.rc"
+#include "pl.rc"
 #include "pt-BR.rc"
-#include "tr-TR.rc"
+#include "tr.rc"
 #include "zh-CN.rc"
+#include "bn.rc"
