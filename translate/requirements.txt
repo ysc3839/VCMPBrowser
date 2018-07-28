@@ -1,1 +1,4 @@
-translate-toolkit
+-i https://pypi.org/simple
+diff-match-patch==20121119
+six==1.11.0
+translate-toolkit==2.3.0
