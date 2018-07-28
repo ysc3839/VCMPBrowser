@@ -113,6 +113,7 @@
     <ResourceCompile Include="langs\en-US.rc">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ResourceCompile>
+    <ResourceCompile Include="langs\langs.rc" />
     <ResourceCompile Include="VCMPBrowser.rc" />
   </ItemGroup>
   <ItemGroup>

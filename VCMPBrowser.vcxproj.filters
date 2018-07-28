@@ -64,6 +64,9 @@
     <ResourceCompile Include="langs\en-US.rc">
       <Filter>资源文件\langs</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="langs\langs.rc">
+      <Filter>资源文件\langs</Filter>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="VCMPBrowser.exe.manifest">
