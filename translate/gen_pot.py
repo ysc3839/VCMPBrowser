@@ -41,9 +41,12 @@ class myrcfile(rcfile):
         self.unit_names.add(unit.name)
         super(rcfile, self).addunit(unit)
 
-if __name__ == '__main__':
+def gen_pot():
     rc2po.rc.rcfile = myrcfile
 
-    infile = open('en-US.rc', 'r', encoding='utf-8')
+    infile = open('../langs/en-US.rc', 'r', encoding='utf-8')
     outfile = open('en-US.pot', 'wb')
     rc2po.convertrc(infile, outfile, None, pot=True, charset='utf-16', lang='LANG_ENGLISH', sublang='SUBLANG_ENGLISH_US')
+
+if __name__ == '__main__':
+    gen_pot()

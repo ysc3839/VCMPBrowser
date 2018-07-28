@@ -33,5 +33,5 @@ if __name__ == '__main__':
 
     infile = open('en-US.po', 'rb')
     outfile = open('test.rc', 'w', encoding='utf-8')
-    templatefile = open('en-US.rc', 'r', encoding='utf-8')
+    templatefile = open('../langs/en-US.rc', 'r', encoding='utf-8')
     po2rc.convertrc(infile, outfile, templatefile, lang='LANG_ENGLISH', sublang='SUBLANG_ENGLISH_US')

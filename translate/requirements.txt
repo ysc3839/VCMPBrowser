@@ -1,4 +1,9 @@
 -i https://pypi.org/simple
+certifi==2018.4.16
+chardet==3.0.4
 diff-match-patch==20121119
+idna==2.7
+requests==2.19.1
 six==1.11.0
 translate-toolkit==2.3.0
+urllib3==1.23; python_version >= '2.6'
