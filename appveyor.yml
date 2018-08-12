@@ -1,0 +1,27 @@
+version: "{build}"
+image: Visual Studio 2017
+
+init:
+  - git config --global core.autocrlf false
+
+install:
+  # Clone submodule
+  - git submodule update --init --recursive
+  # Update and build libcurl
+  - set PREV_CD=%CD%
+  - cd C:\Tools\vcpkg
+  - git pull -n
+  - bash -c "echo -e '\nset(CURL_USE_WINSSL ON)' >> C:/Tools/vcpkg/triplets/x86-windows-static.cmake"
+  - vcpkg upgrade --no-dry-run
+  - vcpkg install curl --triplet x86-windows-static
+  - cd %PREV_CD%
+
+build_script:
+  - msbuild VCMPBrowser.sln /p:DefineConstants="NO_I18N=1" /p:Platform="x86" /p:Configuration=Release
+
+artifacts:
+  - path: Release\VCMPBrowser.exe
+    name: VCMPBrowser.exe
+
+cache:
+  - C:\Tools\vcpkg\installed -> appveyor.yml
