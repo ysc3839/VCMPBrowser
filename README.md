@@ -1,4 +1,5 @@
-# VCMPBrowser
+# VCMPBrowser [![Build status](https://ci.appveyor.com/api/projects/status/m1d90tw3j3enmlrd?svg=true)](https://ci.appveyor.com/project/ysc3839/vcmpbrowser/build/artifacts)
+
 A new VCMP browser.
 # Features
 * All functions in the official browser.
