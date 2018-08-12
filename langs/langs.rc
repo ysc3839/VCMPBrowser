@@ -1,6 +1,7 @@
 #pragma code_page(65001)
 
 #include "en-US.rc"
+#ifndef NO_I18N
 #include "ar.rc"
 #include "es.rc"
 #include "nl.rc"
@@ -9,3 +10,4 @@
 #include "tr.rc"
 #include "zh-CN.rc"
 #include "bn.rc"
+#endif // NO_I18N
