@@ -22,6 +22,8 @@
 #include <Uxtheme.h>
 #include <Winsock2.h>
 #include <Commdlg.h>
+#include <Wincred.h>
+#include <Combaseapi.h>
 
 #define RAPIDJSON_HAS_STDSTRING 1
 #include "rapidjson/document.h"
@@ -74,4 +76,4 @@ struct settings
 #define UI_PLAYERLIST_WIDTH 200
 #define UI_SERVERINFO_HEIGHT 140
 
-#define VERSION "1.0-preview4"
+#define VERSION "1.0-preview5"

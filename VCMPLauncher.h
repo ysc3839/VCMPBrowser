@@ -236,17 +236,113 @@ void CheckGameStatus(std::wstring commandLine, std::wstring vcmpDll, HANDLE hPro
 	SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, 0);
 }
 
-wchar_t* ServerInfoToCommandLine(serverAllInfo &serverInfo)
+const char* AskForPassword(const serverAddress &address)
+{
+	const char *password = nullptr;
+	DWORD password_len = 1;
+	auto password_it = g_passwordList.find(address);
+	if (password_it != g_passwordList.end())
+	{
+		password = password_it->second.c_str();
+		password_len = password_it->second.length() + 1;
+	}
+
+	wchar_t *password_w = (wchar_t *)malloc(password_len * sizeof(wchar_t));
+	if (password)
+	{
+		for (size_t i = 0; i < password_len; i++)
+			password_w[i] = password[i];
+	}
+	else
+		password_w[0] = 0;
+
+	wchar_t username[24];
+	for (size_t i = 0; i < ARRAYSIZE(username); i++)
+		username[i] = g_browserSettings.playerName[i];
+
+	DWORD in_auth_buf_size = 0;
+	if (!CredPackAuthenticationBufferW(0, username, password_w, nullptr, &in_auth_buf_size) && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+	{
+		void *in_auth_buf = CoTaskMemAlloc(in_auth_buf_size);
+		if (CredPackAuthenticationBufferW(0, username, password_w, (PBYTE)in_auth_buf, &in_auth_buf_size))
+		{
+			CREDUI_INFOW ui = { sizeof(ui) };
+			ui.hwndParent = g_hMainWnd;
+			ui.pszCaptionText = L"Test1";
+			ui.pszMessageText = L"Test2";
+
+			ULONG auth_package = 0;
+			void *out_auth_buf;
+			ULONG out_auth_buf_size;
+			BOOL save = password ? TRUE : FALSE;
+			if (CredUIPromptForWindowsCredentialsW(&ui, 0, &auth_package, in_auth_buf, in_auth_buf_size, &out_auth_buf, &out_auth_buf_size, &save, CREDUIWIN_GENERIC | CREDUIWIN_CHECKBOX | CREDUIWIN_IN_CRED_ONLY) == ERROR_SUCCESS)
+			{
+				if (password && save == FALSE)
+				{
+					g_passwordList.erase(password_it);
+					password = nullptr;
+				}
+
+				DWORD username_size = ARRAYSIZE(username);
+				BOOL result = CredUnPackAuthenticationBufferW(0, out_auth_buf, out_auth_buf_size, username, &username_size, nullptr, nullptr, password_w, &password_len);
+				if (!result && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+				{
+					free(password_w);
+					password_w = (wchar_t *)malloc(password_len * sizeof(wchar_t));
+					result = CredUnPackAuthenticationBufferW(0, out_auth_buf, out_auth_buf_size, username, &username_size, nullptr, nullptr, password_w, &password_len);
+				}
+				if (result)
+				{
+					if (password_len == 1)
+						password = nullptr;
+					else
+					{
+						static std::string _password;
+						_password.clear();
+						_password.reserve(password_len);
+						for (size_t i = 0; i < password_len; i++)
+							_password.push_back((char)password_w[i]);
+						password = _password.c_str();
+
+						if (save)
+						{
+							if (password_it != g_passwordList.end())
+								password_it->second = _password;
+							else
+								g_passwordList[address] = _password;
+						}
+					}
+				}
+			}
+			else
+				password = nullptr;
+
+			SecureZeroMemory(in_auth_buf, in_auth_buf_size);
+			CoTaskMemFree(in_auth_buf);
+		}
+	}
+
+	free(password_w);
+	return password;
+}
+
+wchar_t* ServerInfoToCommandLine(const serverAllInfo &serverInfo)
 {
 	char ipstr[16];
 	char *ip = (char *)&(serverInfo.address.ip);
 	snprintf(ipstr, sizeof(ipstr), "%hhu.%hhu.%hhu.%hhu", ip[0], ip[1], ip[2], ip[3]);
 
 	static wchar_t commandLine[128];
-	//if (password != nullptr)
-	//swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName, nullptr);
-	//else
-	swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName);
+	if (serverInfo.info.isPassworded)
+	{
+		const char *password = AskForPassword(serverInfo.address);
+		if (password)
+			swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs -z %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName, password);
+		else
+			return nullptr;
+	}
+	else
+		swprintf_s(commandLine, std::size(commandLine), L"-c -h %hs -c -p %hu -n %hs", ipstr, serverInfo.address.port, g_browserSettings.playerName);
 
 	return commandLine;
 }
@@ -274,7 +370,9 @@ void LaunchGame(wchar_t *commandLine, const char *versionName)
 		LaunchVCMP(commandLine, g_browserSettings.gamePath.c_str(), vcmpDll);
 }
 
-void LaunchGame(serverAllInfo &serverInfo)
+void LaunchGame(const serverAllInfo &serverInfo)
 {
-	LaunchGame(ServerInfoToCommandLine(serverInfo), serverInfo.info.versionName);
+	wchar_t *commandLine = ServerInfoToCommandLine(serverInfo);
+	if (commandLine)
+		LaunchGame(commandLine, serverInfo.info.versionName);
 }

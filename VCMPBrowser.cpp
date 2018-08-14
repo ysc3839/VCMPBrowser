@@ -13,6 +13,7 @@ std::vector<serverList::size_type> *g_serverFilter = nullptr;
 serverList g_historyList;
 bool g_checkingUpdate;
 serverList g_favoriteList;
+std::map<serverAddress, std::string> g_passwordList;
 
 HWND g_hMainWnd;
 HWND g_hWndTab;
