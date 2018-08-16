@@ -7,11 +7,12 @@ struct progInfo {
 	curl_off_t size;
 };
 
-HANDLE hCancelEvent;
+LONG canceled = FALSE;
 
 int curlProgress(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
 {
-	if (WaitForSingleObject(hCancelEvent, 0) != WAIT_TIMEOUT) // Cancel
+	// canceled_old = canceled; if (canceled == TRUE) canceled = FALSE; return canceled_old;
+	if (InterlockedCompareExchange(&canceled, FALSE, TRUE) == TRUE) // Cancel
 		return 1;
 	if (dltotal != 0 && ultotal != 0)
 	{
@@ -47,9 +48,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 		}
 		break;
 	case WM_DESTROY:
-		SetEvent(hCancelEvent);
-		CloseHandle(hCancelEvent);
-		hCancelEvent = nullptr;
+		InterlockedExchange(&canceled, TRUE); // canceled = TRUE;
 		return (INT_PTR)TRUE;
 	case WM_PROGRESS:
 		if (wParam != -1)
@@ -226,10 +225,7 @@ bool DownloadVCMPGame(const char *version, const char *password)
 	success = false;
 
 	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, DialogProc, (LPARAM)(DLGPROC)[](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
-		hCancelEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-		if (!hCancelEvent)
-			return (INT_PTR)FALSE;
-
+		canceled = FALSE;
 		std::thread([](HWND hWnd) {
 			CURL *curl = curl_easy_init();
 			if (curl)
@@ -355,10 +351,7 @@ void UpdateBrowser()
 			return;
 
 		DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, DialogProc, (LPARAM)(DLGPROC)[](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
-			hCancelEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-			if (!hCancelEvent)
-				return (INT_PTR)FALSE;
-
+			canceled = FALSE;
 			std::thread([](HWND hWnd) {
 				CURL *curl = curl_easy_init();
 				if (curl)
