@@ -39,7 +39,6 @@ bool GetServerInfo(char *data, int length, serverInfo &serverInfo)
 	if (length < 11 + 12 + 1 + 2 + 2 + 4 + strLen + 4)
 		return false;
 
-	char *serverName = (char *)alloca(strLen + 1);
 	serverInfo.serverName = std::string(_data, strLen);
 	_data += strLen;
 
