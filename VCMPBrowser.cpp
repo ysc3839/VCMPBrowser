@@ -709,8 +709,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				g_checkingUpdate = true;
 				SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"Checking browser update...", IDS_CHECKINGUPDATE));
-				std::thread update(CheckBrowserUpdate);
-				update.detach();
+				std::thread(CheckBrowserUpdate).detach();
 			}
 		}
 		break;
@@ -857,7 +856,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					UpdateWindow(hDialog);*/
 					SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)L"Retrieving server list...");
 
-					std::thread t([](/*HWND hDialog*/) {
+					std::thread([](/*HWND hDialog*/) {
 						std::string data;
 						data.reserve(2048);
 
@@ -892,8 +891,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						}
 						SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, 0);
 						//PostMessage(hDialog, WM_CLOSE, 0, 0);
-					}/*, hDialog*/);
-					t.detach();
+					}/*, hDialog*/).detach();
 				}
 				else if (g_currentTab == 3)
 				{

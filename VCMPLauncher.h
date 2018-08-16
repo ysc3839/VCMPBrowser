@@ -56,8 +56,7 @@ void LaunchVCMP(wchar_t* commandLine, const wchar_t* gtaExe, const wchar_t* vcmp
 									if (exitCode != 0)
 									{
 										ResumeThread(pi.hThread);
-										std::thread check(CheckGameStatus, std::wstring(commandLine), std::wstring(vcmpDll), pi.hProcess, false);
-										check.detach();
+										std::thread(CheckGameStatus, std::wstring(commandLine), std::wstring(vcmpDll), pi.hProcess, false).detach();
 									}
 									else
 									{
@@ -167,8 +166,7 @@ void LaunchSteamVCMP(wchar_t* commandLine, const wchar_t* gtaExe, const wchar_t*
 										if (success)
 										{
 											ResumeThread(pi.hThread);
-											std::thread check(CheckGameStatus, std::wstring(commandLine), std::wstring(vcmpDll), pi.hProcess, true);
-											check.detach();
+											std::thread(CheckGameStatus, std::wstring(commandLine), std::wstring(vcmpDll), pi.hProcess, true).detach();
 										}
 										else
 											MessageBoxPrintError(g_hMainWnd, LoadStr(L"WriteProcessMemory failed! (%u)", IDS_WRITEMEMORYFAIL), GetLastError());

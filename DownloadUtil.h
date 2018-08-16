@@ -230,7 +230,7 @@ bool DownloadVCMPGame(const char *version, const char *password)
 		if (!hCancelEvent)
 			return (INT_PTR)FALSE;
 
-		std::thread thread([](HWND hWnd) {
+		std::thread([](HWND hWnd) {
 			CURL *curl = curl_easy_init();
 			if (curl)
 			{
@@ -291,8 +291,7 @@ bool DownloadVCMPGame(const char *version, const char *password)
 			}
 			PostMessage(hWnd, WM_CLOSE, 0, 0);
 			return 0;
-		}, hDlg);
-		thread.detach();
+		}, hDlg).detach();
 		return 0;
 	});
 
@@ -360,7 +359,7 @@ void UpdateBrowser()
 			if (!hCancelEvent)
 				return (INT_PTR)FALSE;
 
-			std::thread thread([](HWND hWnd) {
+			std::thread([](HWND hWnd) {
 				CURL *curl = curl_easy_init();
 				if (curl)
 				{
@@ -418,8 +417,7 @@ void UpdateBrowser()
 				}
 				PostMessage(hWnd, WM_CLOSE, 0, 0);
 				return 0;
-			}, hDlg);
-			thread.detach();
+			}, hDlg).detach();
 			return 0;
 		});
 	}
