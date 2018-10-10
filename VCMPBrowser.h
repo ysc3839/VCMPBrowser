@@ -24,6 +24,9 @@
 #include <Commdlg.h>
 #include <Wincred.h>
 #include <Combaseapi.h>
+#include <Vssym32.h>
+#include <Dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
 
 #define RAPIDJSON_HAS_STDSTRING 1
 #include "rapidjson/document.h"

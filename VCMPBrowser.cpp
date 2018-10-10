@@ -32,6 +32,7 @@ HWND g_hWndStatusBar;
 #include "TaskDialog.h"
 #include "DownloadUtil.h"
 #include "VCMPLauncher.h"
+#include "DarkMode.h"
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -59,6 +60,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	//SetDPIAware();
 	InitDPIScale();
+
+	InitDarkMode();
 
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NOERROR)
@@ -122,6 +125,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	ShowWindow(g_hMainWnd, nCmdShow);
 	UpdateWindow(g_hMainWnd);
+
+	AllowDarkModeForWindow(g_hMainWnd, true);
+
+	BOOL dark = TRUE;
+	DwmSetWindowAttribute(g_hMainWnd, 19, &dark, sizeof(dark));
 
 	return TRUE;
 }
@@ -431,6 +439,19 @@ std::wstring GetTextW(HWND hWnd)
 	return std::wstring();
 }
 
+void ModifyListViewHeader(HWND hListView)
+{
+	HWND hHeader = ListView_GetHeader(hListView);
+
+	AllowDarkModeForWindow(hHeader, true);
+	SetWindowTheme(hHeader, L"ItemsView", nullptr);
+
+	// Allow header double clicks
+	DWORD classStyle = GetClassLong(hHeader, GCL_STYLE);
+	classStyle ^= CS_DBLCLKS;
+	SetClassLong(hHeader, GCL_STYLE, classStyle);
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static uint32_t lanLastPing = 0;
@@ -462,16 +483,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		else
 			return -1;
 
+		COLORREF bkColor = -1, textColor = -1;
+		HTHEME hTheme = OpenThemeData(g_hMainWnd, L"ExplorerNavPane");
+		if (hTheme)
+		{
+			GetThemeColor(hTheme, 0, 0, TMT_FILLCOLOR, &bkColor);
+			GetThemeColor(hTheme, 0, 0, TMT_TEXTCOLOR, &textColor);
+			CloseThemeData(hTheme);
+		}
+
 		g_hWndListViewServers = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewServers)
 		{
-			// Allow header double clicks
-			HWND hHeader = ListView_GetHeader(g_hWndListViewServers);
-			DWORD classStyle = GetClassLong(hHeader, GCL_STYLE);
-			classStyle ^= CS_DBLCLKS;
-			SetClassLong(hHeader, GCL_STYLE, classStyle);
+			AllowDarkModeForWindow(g_hWndListViewServers, true);
+			SetWindowTheme(g_hWndListViewServers, L"ItemsView", nullptr);
 
-			SetWindowTheme(g_hWndListViewServers, L"Explorer", nullptr);
+			ModifyListViewHeader(g_hWndListViewServers);
+
+			if (bkColor != -1)
+			{
+				ListView_SetBkColor(g_hWndListViewServers, bkColor);
+				ListView_SetTextBkColor(g_hWndListViewServers, bkColor);
+			}
+			if (textColor != -1)
+				ListView_SetTextColor(g_hWndListViewServers, textColor);
+
 			ListView_SetExtendedListViewStyle(g_hWndListViewServers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 
 			ListView_SetImageList(g_hWndListViewServers, hListIml, LVSIL_SMALL);
@@ -513,7 +549,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_hWndListViewHistory = CreateWindow(WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_OWNERDATA, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewHistory)
 		{
-			SetWindowTheme(g_hWndListViewHistory, L"Explorer", nullptr);
+			AllowDarkModeForWindow(g_hWndListViewHistory, true);
+			SetWindowTheme(g_hWndListViewHistory, L"ItemsView", nullptr);
+
+			ModifyListViewHeader(g_hWndListViewHistory);
+
+			if (bkColor != -1)
+			{
+				ListView_SetBkColor(g_hWndListViewServers, bkColor);
+				ListView_SetTextBkColor(g_hWndListViewServers, bkColor);
+			}
+			if (textColor != -1)
+				ListView_SetTextColor(g_hWndListViewHistory, textColor);
+
 			ListView_SetExtendedListViewStyle(g_hWndListViewHistory, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP);
 
 			ListView_SetImageList(g_hWndListViewHistory, hListIml, LVSIL_SMALL);
@@ -592,7 +640,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		g_hWndListViewPlayers = CreateWindowEx(0, WC_LISTVIEW, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER | LVS_SINGLESEL | LVS_OWNERDATA, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
 		if (g_hWndListViewPlayers)
 		{
-			SetWindowTheme(g_hWndListViewPlayers, L"Explorer", nullptr);
+			AllowDarkModeForWindow(g_hWndListViewPlayers, true);
+			SetWindowTheme(g_hWndListViewPlayers, L"ItemsView", nullptr);
+
+			if (bkColor != -1)
+			{
+				ListView_SetBkColor(g_hWndListViewServers, bkColor);
+				ListView_SetTextBkColor(g_hWndListViewServers, bkColor);
+			}
+			if (textColor != -1)
+				ListView_SetTextColor(g_hWndListViewPlayers, textColor);
 
 			ListView_SetExtendedListViewStyle(g_hWndListViewPlayers, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_AUTOSIZECOLUMNS);
 
@@ -621,39 +678,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int editWidth = Scale(300); // #define EDIT_WIDTH 300
 			int height = Scale(16); // #define HEIGHT 16
 
+#define CheckAndModifyEdit(hEdit) \
+	if (hEdit) \
+	{ \
+		SetWindowFont(hEdit, hFont, FALSE); \
+		AllowDarkModeForWindow(hEdit, true); \
+		SetWindowTheme(hEdit, L"CFD", nullptr); \
+	}
+
 			HWND hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Name:", IDS_SERVERNAME_), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
 			HWND hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1001, g_hInst, nullptr);
-			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			CheckAndModifyEdit(hEdit);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server IP:", IDS_SERVERIP), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
 			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1002, g_hInst, nullptr);
-			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			CheckAndModifyEdit(hEdit);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Players:", IDS_SERVERPLAYERS), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
 			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1003, g_hInst, nullptr);
-			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			CheckAndModifyEdit(hEdit);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Ping:", IDS_SERVERPING), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
 			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1004, g_hInst, nullptr);
-			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			CheckAndModifyEdit(hEdit);
 			y += lineGap;
 
 			hStatic = CreateWindow(WC_STATIC, LoadStr(L"Server Gamemode:", IDS_SERVERGAMEMODE), WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SS_RIGHT, labelX, y, labelWidth, height, g_hWndGroupBox2, nullptr, g_hInst, nullptr);
 			if (hStatic) SetWindowFont(hStatic, hFont, FALSE);
 
 			hEdit = CreateWindow(WC_EDIT, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | ES_READONLY | ES_AUTOHSCROLL, editX, y, editWidth, height, g_hWndGroupBox2, (HMENU)1005, g_hInst, nullptr);
-			if (hEdit) SetWindowFont(hEdit, hFont, FALSE);
+			CheckAndModifyEdit(hEdit);
 		}
 
 		g_hWndStatusBar = CreateWindow(STATUSCLASSNAME, nullptr, WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
@@ -982,16 +1047,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					return CDRF_NOTIFYITEMDRAW;
 				case CDDS_ITEMPREPAINT:
 				{
-					COLORREF crText;
 					size_t i = nmcd->nmcd.dwItemSpec;
 					if (g_serverFilter && g_serverFilter->size() > i)
 						i = (*g_serverFilter)[i];
 					if (g_serversList.size() > i && g_serversList[i].isOfficial)
-						crText = g_browserSettings.officialColor;
-					else
-						crText = 0;
+						nmcd->clrText = g_browserSettings.officialColor;
 
-					nmcd->clrText = crText;
 					return CDRF_DODEFAULT;
 				}
 				}
@@ -1530,7 +1591,15 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_INITDIALOG:
+	{
+		BOOL dark = TRUE;
+		DwmSetWindowAttribute(hDlg, 19, &dark, sizeof(dark));
+
+		HWND hButton = GetDlgItem(hDlg, IDOK);
+		AllowDarkModeForWindow(hButton, true);
+		SetWindowTheme(hButton, L"Explorer", nullptr);
 		return (INT_PTR)TRUE;
+	}
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
 		{

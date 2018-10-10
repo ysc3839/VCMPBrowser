@@ -97,6 +97,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DarkMode.h" />
     <ClInclude Include="DownloadUtil.h" />
     <ClInclude Include="HiDPI.h" />
     <ClInclude Include="i18n.h" />
