@@ -24,6 +24,7 @@
 #include <Commdlg.h>
 #include <Wincred.h>
 #include <Combaseapi.h>
+#include <Shlwapi.h>
 
 #define RAPIDJSON_HAS_STDSTRING 1
 #include "rapidjson/document.h"

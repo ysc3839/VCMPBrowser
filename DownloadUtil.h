@@ -148,7 +148,7 @@ bool Extract7z(const char *fileName)
 
 					SzArEx_GetFileNameUtf16(&db, i, (UInt16 *)nameBuf);
 
-					if (wcsstr(nameBuf, L"../") != nullptr)
+					if (!PathIsRelativeW(nameBuf) || wcsstr(nameBuf, L"../") != nullptr)
 						continue;
 
 					/*for (size_t j = 0; nameBuf[j] != 0; j++)
