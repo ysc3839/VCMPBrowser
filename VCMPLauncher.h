@@ -266,8 +266,7 @@ const char* AskForPassword(const serverAddress &address)
 		{
 			CREDUI_INFOW ui = { sizeof(ui) };
 			ui.hwndParent = g_hMainWnd;
-			ui.pszCaptionText = L"Test1";
-			ui.pszMessageText = L"Test2";
+			ui.pszCaptionText = L"Enter server password";
 
 			ULONG auth_package = 0;
 			void *out_auth_buf;
