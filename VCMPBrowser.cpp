@@ -1559,6 +1559,36 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
+std::wstring RegReadWString(HKEY hKey, const wchar_t* subKey, const wchar_t* valueName)
+{
+	HKEY hSubKey;
+	if (RegOpenKeyExW(hKey, subKey, 0, KEY_QUERY_VALUE | KEY_WOW64_64KEY, &hSubKey) == ERROR_SUCCESS)
+	{
+		std::wstring path(MAX_PATH, 0);
+		DWORD type, size = path.size() * sizeof(wchar_t);
+		auto status = RegQueryValueExW(hSubKey, valueName, nullptr, &type, reinterpret_cast<LPBYTE>(&path[0]), &size);
+		if (status == ERROR_MORE_DATA)
+		{
+			path.resize(size / sizeof(wchar_t));
+			status = RegQueryValueExW(hSubKey, valueName, nullptr, &type, reinterpret_cast<LPBYTE>(&path[0]), &size);
+		}
+		RegCloseKey(hSubKey);
+		if (status == ERROR_SUCCESS && type == REG_SZ)
+		{
+			path.resize(size / sizeof(wchar_t));
+
+			// rtrim null
+			auto pos = path.find_last_not_of(L'\0');
+			if (pos != std::wstring::npos)
+			{
+				path.resize(pos + 1);
+			}
+			return path;
+		}
+	}
+	return {};
+}
+
 void ShowSettings()
 {
 	PROPSHEETPAGE psp[3];
@@ -1608,29 +1638,68 @@ void ShowSettings()
 				break;
 				case IDC_BTN_CD:
 				{
-					HKEY hKey;
-					if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4B35F00C-E63D-40DC-9839-DF15A33EAC46}\\", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+					struct RegKey
 					{
-						wchar_t path[MAX_PATH];
-						DWORD type, size = sizeof(path);
-						if (RegQueryValueEx(hKey, L"InstallLocation", nullptr, &type, (LPBYTE)path, &size) == ERROR_SUCCESS)
+						HKEY hKey;
+						const wchar_t* subKey;
+						const wchar_t* valueName;
+						bool isExePath;
+					};
+
+					static const RegKey keys[] = {
 						{
-							if (type == REG_SZ)
-							{
-								wcscat_s(path, L"\\gta-vc.exe");
-								SetDlgItemText(hDlg, IDC_EDIT_GTAPATH, path);
-							}
+							HKEY_LOCAL_MACHINE,
+							L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{4B35F00C-E63D-40DC-9839-DF15A33EAC46}",
+							L"InstallLocation",
+							false
+						},
+						{
+							HKEY_LOCAL_MACHINE,
+							L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 12110|1",
+							L"InstallLocation",
+							false
+						},
+						{
+							HKEY_LOCAL_MACHINE,
+							L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\gta-vc.exe",
+							nullptr,
+							true
+						}
+					};
+
+					for (const auto &k : keys)
+					{
+						auto path = RegReadWString(k.hKey, k.subKey, k.valueName);
+						if (!path.empty())
+						{
+							if (!k.isExePath)
+								path += L"\\gta-vc.exe";
+							SetDlgItemText(hDlg, IDC_EDIT_GTAPATH, path.c_str());
+							return (INT_PTR)FALSE;
 						}
 					}
-					else if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\gta-vc.exe\\", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+
+					HKEY hKey;
+					if (RegOpenKeyExW(HKEY_CURRENT_USER, L"System\\GameConfigStore\\Children", 0, KEY_ENUMERATE_SUB_KEYS, &hKey) == ERROR_SUCCESS)
 					{
-						wchar_t path[MAX_PATH];
-						DWORD type, size = sizeof(path);
-						if (RegQueryValueEx(hKey, nullptr, nullptr, &type, (LPBYTE)path, &size) == ERROR_SUCCESS)
+						for (DWORD i = 0;; ++i)
 						{
-							if (type == REG_SZ)
-								SetDlgItemText(hDlg, IDC_EDIT_GTAPATH, path);
+							wchar_t name[37]; // guid string len + 1
+							DWORD size = std::size(name);
+							auto status = RegEnumKeyExW(hKey, i, name, &size, nullptr, nullptr, nullptr, nullptr);
+							if (status == ERROR_MORE_DATA)
+								continue;
+							if (status != ERROR_SUCCESS)
+								break;
+
+							if (RegReadWString(hKey, name, L"GameDVR_GameGUID") == L"0e2a5d27-0d5d-4327-9e02-8d5be5e67d96")
+							{
+								auto path = RegReadWString(hKey, name, L"MatchedExeFullPath");
+								SetDlgItemText(hDlg, IDC_EDIT_GTAPATH, path.c_str());
+								break;
+							}
 						}
+						RegCloseKey(hKey);
 					}
 				}
 				break;
