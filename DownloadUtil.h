@@ -31,57 +31,9 @@ int curlProgress(void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultot
 	return 0;
 }
 
-INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch (message)
-	{
-	case WM_INITDIALOG:
-	{
-		DLGPROC dlgProc = (DLGPROC)lParam;
-		return dlgProc(hDlg, message, wParam, lParam);
-	}
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDCANCEL)
-		{
-			EndDialog(hDlg, LOWORD(wParam));
-			return (INT_PTR)TRUE;
-		}
-		break;
-	case WM_DESTROY:
-		InterlockedExchange(&canceled, TRUE); // canceled = TRUE;
-		return (INT_PTR)TRUE;
-	case WM_PROGRESS:
-		if (wParam != -1)
-		{
-			SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETPOS, wParam, 0);
-			const wchar_t *unit = L"B/s";
-			float speed = (float)lParam;
-			if (speed > 1024)
-			{
-				speed = speed / 1024; // KB
-				unit = L"KB/s";
-				if (speed > 1024)
-				{
-					speed = speed / 1024; // MB
-					unit = L"MB/s";
-				}
-			}
-			wchar_t speedText[32];
-			swprintf_s(speedText, L"%.1f %s", speed, unit);
-			SetDlgItemText(hDlg, IDC_TIPSTATIC, speedText);
-		}
-		else
-		{
-			SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
-		}
-		break;
-	}
-	return (INT_PTR)FALSE;
-}
-
 bool Extract7z(const char *fileName)
 {
-	#define kInputBufSize ((size_t)1 << 18)
+#define kInputBufSize ((size_t)1 << 18)
 	static const ISzAlloc szAlloc = { SzAlloc, SzFree };
 
 	struct mycompare { bool operator()(const wchar_t *a, const wchar_t *b) const { return _wcsicmp(a, b) < 0; } };
@@ -212,6 +164,68 @@ bool Extract7z(const char *fileName)
 	return false;
 }
 
+using DownloadFunc = void(*)(HWND hTDWnd, HWND hMsgWnd);
+
+HRESULT CALLBACK TaskDialogCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR lpRefData)
+{
+	switch (msg)
+	{
+	case TDN_CREATED:
+		PostMessageW(hWnd, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 0);
+
+		HWND hMsgWnd = CreateWindowW(WC_STATICW, nullptr, WS_CHILD, 0, 0, 0, 0, hWnd, nullptr, g_hInst, nullptr);
+		SetWindowLongPtrW(hMsgWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(hWnd));
+
+		static bool progBarStatus;
+		progBarStatus = false;
+		static LONG_PTR prevWndProc;
+		prevWndProc = SetWindowLongPtrW(hMsgWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(static_cast<WNDPROC>(
+		[](HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) -> LRESULT {
+			if (message == WM_PROGRESS)
+			{
+				HWND hTDWnd = reinterpret_cast<HWND>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+				if (wParam != -1)
+				{
+					if (!progBarStatus)
+					{
+						SendMessageW(hTDWnd, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+						progBarStatus = true;
+					}
+					SendMessageW(hTDWnd, TDM_SET_PROGRESS_BAR_POS, wParam, 0);
+					const wchar_t *unit = L"B/s";
+					float speed = static_cast<float>(lParam);
+					if (speed > 1024)
+					{
+						speed = speed / 1024; // KB
+						unit = L"KB/s";
+						if (speed > 1024)
+						{
+							speed = speed / 1024; // MB
+							unit = L"MB/s";
+						}
+					}
+					wchar_t speedText[32];
+					swprintf_s(speedText, L"%.1f %s", speed, unit);
+					SendMessageW(hTDWnd, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, reinterpret_cast<LPARAM>(speedText));
+				}
+				else
+				{
+					SendMessageW(hTDWnd, TDM_SET_PROGRESS_BAR_STATE, PBST_ERROR, 0);
+					SendMessageW(hTDWnd, TDM_UPDATE_ICON, TDIE_ICON_MAIN, reinterpret_cast<LPARAM>(TD_ERROR_ICON));
+					SendMessageW(hTDWnd, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, reinterpret_cast<LPARAM>(L"Download failed."));
+				}
+				return 0;
+			}
+			return CallWindowProcW(reinterpret_cast<WNDPROC>(prevWndProc), hWnd, message, wParam, lParam);
+		})));
+
+		canceled = FALSE;
+		reinterpret_cast<DownloadFunc>(lpRefData)(hWnd, hMsgWnd);
+		break;
+	}
+	return S_OK;
+}
+
 bool DownloadVCMPGame(const char *version, const char *password)
 {
 	struct downloadInfo {
@@ -219,14 +233,20 @@ bool DownloadVCMPGame(const char *version, const char *password)
 		const char *password;
 	};
 	downloadInfo dlInfo = { version, password };
-	static downloadInfo *pdlInfo;
+	static downloadInfo* pdlInfo;
 	pdlInfo = &dlInfo;
 	static bool success;
 	success = false;
 
-	DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, DialogProc, (LPARAM)(DLGPROC)[](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
-		canceled = FALSE;
-		std::thread([](HWND hWnd) {
+	TASKDIALOGCONFIG tdConfig = { sizeof(tdConfig) };
+	tdConfig.hwndParent = g_hMainWnd;
+	tdConfig.hInstance = g_hInst;
+	tdConfig.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_POSITION_RELATIVE_TO_WINDOW;
+	tdConfig.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+	tdConfig.pszWindowTitle = L"Downloading";
+	tdConfig.pfCallback = TaskDialogCallback;
+	tdConfig.lpCallbackData = reinterpret_cast<LONG_PTR>(static_cast<DownloadFunc>([](HWND hTDWnd, HWND hMsgWnd) {
+		std::thread([](HWND hTDWnd, HWND hMsgWnd) {
 			CURL *curl = curl_easy_init();
 			if (curl)
 			{
@@ -244,12 +264,12 @@ bool DownloadVCMPGame(const char *version, const char *password)
 				if (file == nullptr)
 				{
 					curl_easy_cleanup(curl);
-					PostMessage(hWnd, WM_CLOSE, 0, 0);
+					PostMessageW(hMsgWnd, WM_PROGRESS, -1, 0);
 					return 0;
 				}
 				curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
 
-				progInfo progress = { hWnd, GetTickCount(), 0 };
+				progInfo progress = { hMsgWnd, GetTickCount(), 0 };
 				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, false);
 				curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress);
 				curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, curlProgress);
@@ -285,13 +305,15 @@ bool DownloadVCMPGame(const char *version, const char *password)
 				}
 				remove(fileName);
 			}
-			PostMessage(hWnd, WM_CLOSE, 0, 0);
+			if (success)
+				PostMessageW(hTDWnd, WM_CLOSE, 0, 0);
+			else
+				PostMessageW(hMsgWnd, WM_PROGRESS, -1, 0);
 			return 0;
-		}, hDlg).detach();
-		return 0;
-	});
-
-	pdlInfo = nullptr;
+		}, hTDWnd, hMsgWnd).detach();
+	}));
+	TaskDialogIndirect(&tdConfig, nullptr, nullptr, nullptr);
+	InterlockedExchange(&canceled, TRUE); // canceled = TRUE;
 	return success;
 }
 
@@ -350,9 +372,15 @@ void UpdateBrowser()
 		if (TDMessageBox(g_hMainWnd, message, LoadStr(L"Information", IDS_INFORMATION), MB_YESNO | MB_ICONINFORMATION) != IDYES)
 			return;
 
-		DialogBoxParam(g_hInst, MAKEINTRESOURCE(IDD_UPDATE), g_hMainWnd, DialogProc, (LPARAM)(DLGPROC)[](HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) -> INT_PTR {
-			canceled = FALSE;
-			std::thread([](HWND hWnd) {
+		TASKDIALOGCONFIG tdConfig = { sizeof(tdConfig) };
+		tdConfig.hwndParent = g_hMainWnd;
+		tdConfig.hInstance = g_hInst;
+		tdConfig.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_POSITION_RELATIVE_TO_WINDOW;
+		tdConfig.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+		tdConfig.pszWindowTitle = L"Downloading";
+		tdConfig.pfCallback = TaskDialogCallback;
+		tdConfig.lpCallbackData = reinterpret_cast<LONG_PTR>(static_cast<DownloadFunc>([](HWND hTDWnd, HWND hMsgWnd) {
+			std::thread([](HWND hTDWnd, HWND hMsgWnd) {
 				CURL *curl = curl_easy_init();
 				if (curl)
 				{
@@ -369,12 +397,12 @@ void UpdateBrowser()
 					if (file == nullptr)
 					{
 						curl_easy_cleanup(curl);
-						PostMessage(hWnd, WM_CLOSE, 0, 0);
+						PostMessageW(hMsgWnd, WM_PROGRESS, -1, 0);
 						return 0;
 					}
 					curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
 
-					progInfo progress = { hWnd, GetTickCount(), 0 };
+					progInfo progress = { hMsgWnd, GetTickCount(), 0 };
 					curl_easy_setopt(curl, CURLOPT_NOPROGRESS, false);
 					curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress);
 					curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, curlProgress);
@@ -400,19 +428,20 @@ void UpdateBrowser()
 						{
 							CloseHandle(pi.hThread);
 							CloseHandle(pi.hProcess);
-							EndDialog(hWnd, 0);
-							PostMessage(g_hMainWnd, WM_CLOSE, 0, 0);
+							PostMessageW(hTDWnd, WM_CLOSE, 0, 0);
+							PostMessageW(g_hMainWnd, WM_CLOSE, 0, 0);
 							return 0;
 						}
 					}
 
 					remove(fileName);
 				}
-				PostMessage(hWnd, WM_CLOSE, 0, 0);
+				PostMessageW(hMsgWnd, WM_PROGRESS, -1, 0);
 				return 0;
-			}, hDlg).detach();
-			return 0;
-		});
+			}, hTDWnd, hMsgWnd).detach();
+		}));
+		TaskDialogIndirect(&tdConfig, nullptr, nullptr, nullptr);
+		InterlockedExchange(&canceled, TRUE); // canceled = TRUE;
 	}
 	else
 		SendMessage(g_hWndStatusBar, SB_SETTEXT, 0, (LPARAM)LoadStr(L"No update found.", IDS_NOUPDATE));
