@@ -38,21 +38,24 @@ inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (Lo
 
 bool ConvertCharset(const char *from, std::wstring &to)
 {
-	size_t size = MultiByteToWideChar(CP_ACP, 0, from, -1, nullptr, 0);
+	constexpr DWORD kFlags = MB_ERR_INVALID_CHARS;
+	do
+	{
+		const int size = MultiByteToWideChar(CP_ACP, kFlags, from, -1, nullptr, 0);
 
-	if (size == 0)
-		return false;
+		if (size == 0)
+			break;
 
-	wchar_t *buffer = new wchar_t[size];
-	if (!buffer)
-		return false;
+		to.resize(size);
 
-	if (MultiByteToWideChar(CP_ACP, 0, from, -1, buffer, size) == 0)
-		return false;
+		int result = MultiByteToWideChar(CP_ACP, kFlags, from, -1, &to[0], size);
+
+		if (result == 0)
+			break;
+
+		return true;
+	} while (0);
 
 	to.clear();
-	to.append(buffer);
-
-	delete[] buffer;
-	return true;
+	return false;
 }
