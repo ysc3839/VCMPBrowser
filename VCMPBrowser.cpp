@@ -409,26 +409,30 @@ void HandleMenuSelect(HWND hwndFrom, int id)
 
 std::string GetText(HWND hWnd)
 {
-	size_t len = GetWindowTextLengthA(hWnd) + 1;
+	size_t len = GetWindowTextLengthA(hWnd);
 	if (len != 0)
 	{
-		char *text = (char *)alloca(len);
-		len = GetWindowTextA(hWnd, text, len);
-		return std::string(text, len);
+		++len;
+		std::string text(len, 0);
+		len = GetWindowTextA(hWnd, &text[0], len);
+		text.resize(len);
+		return text;
 	}
-	return std::string();
+	return {};
 }
 
 std::wstring GetTextW(HWND hWnd)
 {
-	size_t len = GetWindowTextLengthW(hWnd) + 1;
+	size_t len = GetWindowTextLengthW(hWnd);
 	if (len != 0)
 	{
-		wchar_t *text = (wchar_t *)alloca(len * sizeof(wchar_t));
-		len = GetWindowTextW(hWnd, text, len);
-		return std::wstring(text, len);
+		++len;
+		std::wstring text(len, 0);
+		len = GetWindowTextW(hWnd, &text[0], len);
+		text.resize(len);
+		return text;
 	}
-	return std::wstring();
+	return {};
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
