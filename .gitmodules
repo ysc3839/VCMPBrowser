@@ -1,3 +1,6 @@
 [submodule "lib7zdec"]
 	path = lib7zdec
 	url = https://github.com/ysc3839/lib7zdec.git
+[submodule "rapidjson"]
+	path = rapidjson
+	url = https://github.com/Tencent/rapidjson.git
