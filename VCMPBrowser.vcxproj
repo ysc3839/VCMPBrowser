@@ -182,6 +182,7 @@
     <ClInclude Include="ServerQueryUtil.h" />
     <ClInclude Include="SettingsUtil.h" />
     <ClInclude Include="TaskDialog.h" />
+    <ClInclude Include="Util.hpp" />
     <ClInclude Include="VCMPBrowser.h" />
     <ClInclude Include="VCMPLauncher.h" />
   </ItemGroup>

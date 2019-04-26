@@ -52,7 +52,7 @@ void SaveSettings()
 
 	writer.EndObject();
 
-	SetCurrentDirectory(g_exePath);
+	SetCurrentDirectoryW(g_exePath.c_str());
 
 	FILE *file = _wfopen(L"settings.json", L"wb");
 	if (file != nullptr)
@@ -79,7 +79,7 @@ void LoadSettings()
 {
 	DefaultSettings();
 
-	SetCurrentDirectory(g_exePath);
+	SetCurrentDirectoryW(g_exePath.c_str());
 
 	FILE *file = _wfopen(L"settings.json", L"rb");
 	if (file != nullptr)
@@ -192,7 +192,7 @@ void SaveHistory()
 
 	writer.EndArray();
 
-	SetCurrentDirectory(g_exePath);
+	SetCurrentDirectoryW(g_exePath.c_str());
 
 	FILE *file = _wfopen(L"history.json", L"wb");
 	if (file != nullptr)
@@ -277,7 +277,7 @@ void SaveFavorites()
 
 	writer.EndArray();
 
-	SetCurrentDirectory(g_exePath);
+	SetCurrentDirectoryW(g_exePath.c_str());
 
 	FILE *file = _wfopen(L"favorites.json", L"wb");
 	if (file != nullptr)

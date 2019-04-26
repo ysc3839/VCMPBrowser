@@ -1,7 +1,7 @@
 #include "VCMPBrowser.h"
 
 HINSTANCE g_hInst;
-wchar_t g_exePath[MAX_PATH];
+fs::path g_exePath;
 settings g_browserSettings;
 serverMasterList *g_serversMasterList = nullptr;
 int g_currentTab = 0; // 0=Favorites, 1=Internet, 2=Official, 3=Lan, 4=History
@@ -32,6 +32,7 @@ HWND g_hWndStatusBar;
 #include "TaskDialog.h"
 #include "DownloadUtil.h"
 #include "VCMPLauncher.h"
+#include "Util.hpp"
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -47,9 +48,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	wcscpy_s(g_exePath, _wpgmptr);
-	auto c = wcsrchr(g_exePath, L'\\');
-	if (c) c[1] = L'\0';
+	g_exePath = GetModuleFsPath(nullptr);
 
 	LoadSettings();
 

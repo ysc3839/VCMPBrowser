@@ -355,7 +355,7 @@ void LaunchGame(wchar_t *commandLine, const char *versionName)
 		isSteam = true;
 
 	wchar_t vcmpDll[MAX_PATH];
-	swprintf(vcmpDll, MAX_PATH, L"%s%hs\\%s", g_exePath, versionName, isSteam ? L"vcmp-steam.dll" : L"vcmp-game.dll");
+	swprintf(vcmpDll, MAX_PATH, L"%s%hs\\%s", g_exePath.c_str(), versionName, isSteam ? L"vcmp-steam.dll" : L"vcmp-game.dll");
 
 	if (_waccess(vcmpDll, 0) == -1)
 		if (!DownloadVCMPGame(versionName, g_browserSettings.gameUpdatePassword.c_str()))

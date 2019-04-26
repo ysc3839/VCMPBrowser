@@ -254,7 +254,7 @@ bool DownloadVCMPGame(const char *version, const char *password)
 				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 				curl_easy_setopt(curl, CURLOPT_PROXY, g_browserSettings.proxy.empty() ? nullptr : g_browserSettings.proxy.c_str());
 
-				SetCurrentDirectory(g_exePath);
+				SetCurrentDirectoryW(g_exePath.c_str());
 
 				char fileName[16];
 				srand(GetTickCount());
@@ -387,7 +387,7 @@ void UpdateBrowser()
 					curl_easy_setopt(curl, CURLOPT_URL, g_updateInfo.downloadLink.c_str());
 					curl_easy_setopt(curl, CURLOPT_PROXY, g_browserSettings.proxy.empty() ? nullptr : g_browserSettings.proxy.c_str());
 
-					SetCurrentDirectory(g_exePath);
+					SetCurrentDirectoryW(g_exePath.c_str());
 
 					char fileName[16];
 					srand(GetTickCount());
