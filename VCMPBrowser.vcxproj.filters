@@ -1,107 +1,70 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="源文件">
+    <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="头文件">
+    <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="资源文件">
+    <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="资源文件\langs">
-      <UniqueIdentifier>{a31c2f06-20e1-437e-91ff-a76d6c537cdf}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VCMPBrowser.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MasterListUtil.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="i18n.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ServerQueryUtil.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="DownloadUtil.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="VCMPLauncher.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="SettingsUtil.h">
-      <Filter>头文件</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="HiDPI.h">
-      <Filter>头文件</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="i18n.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MasterListUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ServerInfoUtil.h">
-      <Filter>头文件</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerQueryUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingsUtil.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TaskDialog.h">
-      <Filter>头文件</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="VCMPBrowser.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
+    <ClInclude Include="VCMPBrowser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VCMPLauncher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VCMPBrowser.rc">
-      <Filter>资源文件</Filter>
-    </ResourceCompile>
-    <ResourceCompile Include="langs\en-US.rc">
-      <Filter>资源文件\langs</Filter>
+      <Filter>Resource Files</Filter>
     </ResourceCompile>
     <ResourceCompile Include="langs\langs.rc">
-      <Filter>资源文件\langs</Filter>
+      <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="VCMPBrowser.exe.manifest">
-      <Filter>资源文件</Filter>
+      <Filter>Resource Files</Filter>
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\VCMPBrowser.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\small.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\favorite.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\internet.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\lan.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\history.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\unlock.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\lock.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="LICENSE" />
-    <None Include="CURL_LICENSE" />
-    <None Include="rapidjson_license" />
+    <ClCompile Include="VCMPBrowser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
