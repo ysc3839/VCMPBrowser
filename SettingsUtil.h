@@ -92,63 +92,45 @@ void LoadSettings()
 		if (dom.ParseStream(is).HasParseError() || !dom.IsObject())
 			return;
 
-		auto member = dom.FindMember("language");
-		if (member != dom.MemberEnd() && member->value.IsUint())
-			g_browserSettings.language = member->value.GetUint();
-
-		member = dom.FindMember("codePage");
-		if (member != dom.MemberEnd() && member->value.IsUint())
-			g_browserSettings.codePage = member->value.GetUint();
-
-		member = dom.FindMember("playerName");
-		if (member != dom.MemberEnd() && member->value.IsString())
-			strncpy(g_browserSettings.playerName, member->value.GetString(), sizeof(g_browserSettings.playerName));
-
-		member = dom.FindMember("gamePath");
-		if (member != dom.MemberEnd() && member->value.IsString())
+		for (auto it = dom.MemberBegin(); it != dom.MemberEnd(); ++it)
 		{
-			using rapidjson::UTF8;
-			using rapidjson::UTF16;
-
-			rapidjson::GenericStringStream<UTF8<>> source(member->value.GetString());
-			rapidjson::GenericStringBuffer<UTF16<>> target;
-			bool hasError = false;
-			while (source.Peek() != '\0') if (!rapidjson::Transcoder<UTF8<>, UTF16<>>::Transcode(source, target)) { hasError = true; break; }
-			g_browserSettings.gamePath = std::wstring(target.GetString(), target.GetSize());
-		}
-
-		member = dom.FindMember("gameUpdateFreq");
-		if (member != dom.MemberEnd() && member->value.IsUint())
-			g_browserSettings.gameUpdateFreq = (updateFreq)member->value.GetUint();
-
-		member = dom.FindMember("gameUpdateURL");
-		if (member != dom.MemberEnd() && member->value.IsString())
-			g_browserSettings.gameUpdateURL = std::string(member->value.GetString(), member->value.GetStringLength());
-
-		member = dom.FindMember("gameUpdatePassword");
-		if (member != dom.MemberEnd() && member->value.IsString())
-			g_browserSettings.gameUpdatePassword = std::string(member->value.GetString(), member->value.GetStringLength());
-
-		member = dom.FindMember("masterlistURL");
-		if (member != dom.MemberEnd() && member->value.IsString())
-			g_browserSettings.masterlistURL = std::string(member->value.GetString(), member->value.GetStringLength());
-
-		member = dom.FindMember("proxy");
-		if (member != dom.MemberEnd() && member->value.IsString())
-			g_browserSettings.proxy = std::string(member->value.GetString(), member->value.GetStringLength());
-
-		member = dom.FindMember("officialColor");
-		if (member != dom.MemberEnd() && member->value.IsUint())
-			g_browserSettings.officialColor = member->value.GetUint();
-
-		member = dom.FindMember("custColors");
-		if (member != dom.MemberEnd() && member->value.IsArray())
-		{
-			size_t i = 0;
-			for (auto it = member->value.Begin(); it != member->value.End() && i < 16; ++it, ++i)
+			if (it->name == "language" && it->value.IsUint())
+				g_browserSettings.language = it->value.GetUint();
+			else if (it->name == "codePage" && it->value.IsUint())
+				g_browserSettings.codePage = it->value.GetUint();
+			else if (it->name == "playerName" && it->value.IsString())
+				strncpy(g_browserSettings.playerName, it->value.GetString(), sizeof(g_browserSettings.playerName));
+			else if (it->name == "gamePath" && it->value.IsString())
 			{
-				if (it->IsUint())
-					g_browserSettings.custColors[i] = it->GetUint();
+				using rapidjson::UTF8;
+				using rapidjson::UTF16;
+
+				rapidjson::GenericStringStream<UTF8<>> source(it->value.GetString());
+				rapidjson::GenericStringBuffer<UTF16<>> target;
+				bool hasError = false;
+				while (source.Peek() != '\0') if (!rapidjson::Transcoder<UTF8<>, UTF16<>>::Transcode(source, target)) { hasError = true; break; }
+				g_browserSettings.gamePath = std::wstring(target.GetString(), target.GetSize());
+			}
+			else if (it->name == "gameUpdateFreq" && it->value.IsUint())
+				g_browserSettings.gameUpdateFreq = (updateFreq)it->value.GetUint();
+			else if (it->name == "gameUpdateURL" && it->value.IsString())
+				g_browserSettings.gameUpdateURL = std::string(it->value.GetString(), it->value.GetStringLength());
+			else if (it->name == "gameUpdatePassword" && it->value.IsString())
+				g_browserSettings.gameUpdatePassword = std::string(it->value.GetString(), it->value.GetStringLength());
+			else if (it->name == "masterlistURL" && it->value.IsString())
+				g_browserSettings.masterlistURL = std::string(it->value.GetString(), it->value.GetStringLength());
+			else if (it->name == "proxy" && it->value.IsString())
+				g_browserSettings.proxy = std::string(it->value.GetString(), it->value.GetStringLength());
+			else if (it->name == "officialColor" && it->value.IsUint())
+				g_browserSettings.officialColor = it->value.GetUint();
+			else if (it->name == "custColors" && it->value.IsArray())
+			{
+				size_t i = 0;
+				for (auto itr = it->value.Begin(); itr != it->value.End() && i < 16; ++itr, ++i)
+				{
+					if (itr->IsUint())
+						g_browserSettings.custColors[i] = itr->GetUint();
+				}
 			}
 		}
 	}
