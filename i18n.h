@@ -31,7 +31,7 @@ const wchar_t *languageNames[] = {
 };
 
 #ifndef NO_I18N
-inline wchar_t* LoadStr(wchar_t* origString, UINT ID) { wchar_t* str; return (LoadString(g_hInst, ID, (LPWSTR)&str, 0) ? str : origString); }
+inline const wchar_t* LoadStr(const wchar_t* origString, UINT ID) { wchar_t* str; return (LoadStringW(g_hInst, ID, reinterpret_cast<LPWSTR>(&str), 0) ? str : origString); }
 #else // NO_I18N
 #define LoadStr(origString, ID) origString
 #endif // NO_I18N

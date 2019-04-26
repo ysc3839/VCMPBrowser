@@ -487,27 +487,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
 			lvc.cx = Scale(280);
-			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Server Name", IDS_SERVERNAME));
 			ListView_InsertColumn(g_hWndListViewServers, 1, &lvc);
 
 			lvc.cx = Scale(60);
-			lvc.pszText = LoadStr(L"Ping", IDS_PING);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Ping", IDS_PING));
 			ListView_InsertColumn(g_hWndListViewServers, 2, &lvc);
 
 			lvc.cx = Scale(80);
-			lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Players", IDS_PLAYERS));
 			ListView_InsertColumn(g_hWndListViewServers, 3, &lvc);
 
 			lvc.cx = Scale(70);
-			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Version", IDS_VERSION));
 			ListView_InsertColumn(g_hWndListViewServers, 4, &lvc);
 
 			lvc.cx = Scale(140);
-			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Gamemode", IDS_GAMEMODE));
 			ListView_InsertColumn(g_hWndListViewServers, 5, &lvc);
 
 			lvc.cx = Scale(100);
-			lvc.pszText = LoadStr(L"Map Name", IDS_MAPNAME);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Map Name", IDS_MAPNAME));
 			ListView_InsertColumn(g_hWndListViewServers, 6, &lvc);
 
 			LoadFavorites();
@@ -529,27 +529,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			lvc.mask = LVCF_WIDTH | LVCF_TEXT;
 			lvc.cx = Scale(240);
-			lvc.pszText = LoadStr(L"Server Name", IDS_SERVERNAME);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Server Name", IDS_SERVERNAME));
 			ListView_InsertColumn(g_hWndListViewHistory, 1, &lvc);
 
 			lvc.cx = Scale(60);
-			lvc.pszText = LoadStr(L"Ping", IDS_PING);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Ping", IDS_PING));
 			ListView_InsertColumn(g_hWndListViewHistory, 2, &lvc);
 
 			lvc.cx = Scale(80);
-			lvc.pszText = LoadStr(L"Players", IDS_PLAYERS);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Players", IDS_PLAYERS));
 			ListView_InsertColumn(g_hWndListViewHistory, 3, &lvc);
 
 			lvc.cx = Scale(70);
-			lvc.pszText = LoadStr(L"Version", IDS_VERSION);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Version", IDS_VERSION));
 			ListView_InsertColumn(g_hWndListViewHistory, 4, &lvc);
 
 			lvc.cx = Scale(120);
-			lvc.pszText = LoadStr(L"Gamemode", IDS_GAMEMODE);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Gamemode", IDS_GAMEMODE));
 			ListView_InsertColumn(g_hWndListViewHistory, 5, &lvc);
 
 			lvc.cx = Scale(160);
-			lvc.pszText = LoadStr(L"Last Played", IDS_LASTPLAYED);
+			lvc.pszText = const_cast<LPWSTR>(LoadStr(L"Last Played", IDS_LASTPLAYED));
 			ListView_InsertColumn(g_hWndListViewHistory, 6, &lvc);
 
 			LoadHistory();
@@ -573,23 +573,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			TCITEM tie;
 			tie.mask = TCIF_TEXT | TCIF_IMAGE;
 			tie.iImage = 0;
-			tie.pszText = LoadStr(L"Favorites", IDS_FAVORITES);
+			tie.pszText = const_cast<LPWSTR>(LoadStr(L"Favorites", IDS_FAVORITES));
 			TabCtrl_InsertItem(g_hWndTab, 0, &tie);
 
 			tie.iImage = 1;
-			tie.pszText = LoadStr(L"Internet", IDS_INTERNET);
+			tie.pszText = const_cast<LPWSTR>(LoadStr(L"Internet", IDS_INTERNET));
 			TabCtrl_InsertItem(g_hWndTab, 1, &tie);
 
 			tie.iImage = 1;
-			tie.pszText = LoadStr(L"Official", IDS_OFFICIAL);
+			tie.pszText = const_cast<LPWSTR>(LoadStr(L"Official", IDS_OFFICIAL));
 			TabCtrl_InsertItem(g_hWndTab, 2, &tie);
 
 			tie.iImage = 2;
-			tie.pszText = LoadStr(L"Lan", IDS_LAN);
+			tie.pszText = const_cast<LPWSTR>(LoadStr(L"Lan", IDS_LAN));
 			TabCtrl_InsertItem(g_hWndTab, 3, &tie);
 
 			tie.iImage = 3;
-			tie.pszText = LoadStr(L"History", IDS_HISTORY);
+			tie.pszText = const_cast<LPWSTR>(LoadStr(L"History", IDS_HISTORY));
 			TabCtrl_InsertItem(g_hWndTab, 4, &tie);
 		}
 
